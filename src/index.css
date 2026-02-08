@@ -8,17 +8,17 @@
   --grid-step-size: 1rem;
 
   --interval-0: #111111;
-  --interval-1: #a6e22e;
-  --interval-2: #5ec962;
-  --interval-3: #1f77b4;
+  --interval-1: #8da503;
+  --interval-2: #02be08;
+  --interval-3: #1a6db6;
   --interval-4: #d7263d;
   --interval-5: #d0d0d0;
-  --interval-6: #7a4a2e;
+  --interval-6: #963701;
   --interval-7: #ffffff;
-  --interval-8: #5a3e85;
-  --interval-9: #9b7edb;
-  --interval-10: #f2c200;
-  --interval-11: #ffe0b8;
+  --interval-8: #5625a0;
+  --interval-9: #a78ae4;
+  --interval-10: #ffde59;
+  --interval-11: #fcae4e;
 
   --interval-border-0: var(--interval-0);
   --interval-border-1: var(--interval-1);
