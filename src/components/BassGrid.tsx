@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { expandBassEvents } from '../lib/expand';
-import { getIntervalIndex, intervalColor, GRID_STEP_VAR } from '../lib/intervals';
+import { getIntervalIndex, intervalBorderColor, intervalColor, GRID_STEP_VAR } from '../lib/intervals';
 import type { BassEvent, Track } from '../lib/model';
 
 const STEPS_PER_BEAT = 4;
@@ -68,6 +68,7 @@ const buildRowCells = (
             style={{
               gridColumnEnd: `span ${maxLength}`,
               backgroundColor: intervalColor(span.interval),
+              border: `1px solid ${intervalBorderColor(span.interval)}`,
             }}
             data-midi={span.midi}
             data-interval={span.interval}

@@ -22,6 +22,7 @@ export function Legend({ title = 'Intervals' }: LegendProps) {
                   width: `var(${GRID_STEP_VAR})`,
                   height: `var(${GRID_STEP_VAR})`,
                   backgroundColor: `var(${interval.cssVar})`,
+                  border: `1px solid var(${interval.borderVar})`,
                 }}
                 aria-label={interval.label}
                 title={interval.label}

@@ -19,4 +19,17 @@
   --interval-9: #9b7edb;
   --interval-10: #f2c200;
   --interval-11: #ffe0b8;
+
+  --interval-border-0: var(--interval-0);
+  --interval-border-1: var(--interval-1);
+  --interval-border-2: var(--interval-2);
+  --interval-border-3: var(--interval-3);
+  --interval-border-4: var(--interval-4);
+  --interval-border-5: var(--interval-5);
+  --interval-border-6: var(--interval-6);
+  --interval-border-7: #d0d0d0;
+  --interval-border-8: var(--interval-8);
+  --interval-border-9: var(--interval-9);
+  --interval-border-10: var(--interval-10);
+  --interval-border-11: var(--interval-11);
 }
