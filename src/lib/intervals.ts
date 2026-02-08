@@ -18,6 +18,7 @@ export const INTERVALS: IntervalSpec[] = [
   { semitones: 9, label: 'Major 6th', shortLabel: 'M6', cssVar: '--interval-9' },
   { semitones: 10, label: 'Minor 7th', shortLabel: 'm7', cssVar: '--interval-10' },
   { semitones: 11, label: 'Major 7th', shortLabel: 'M7', cssVar: '--interval-11' },
+  { semitones: 12, label: 'Octave', shortLabel: '8ve', cssVar: '--interval-0' },
 ];
 
 export const GRID_STEP_VAR = '--grid-step-size';
