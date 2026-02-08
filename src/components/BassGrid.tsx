@@ -94,7 +94,7 @@ export function BassGrid({ track }: BassGridProps) {
   const spans = buildNoteSpans(track, bassEvents);
   const spansByStart = new Map(spans.map((span) => [span.startStep, span]));
   const barWidth = `calc(${stepsPerBar} * 1rem)`;
-  const stepSize = '1rem';
+  const stepSize = '1.5rem';
   const bars: BarIndex[] = Array.from({ length: totalBars }, (_, index) => ({
     startStep: index * stepsPerBar,
   }));
@@ -121,7 +121,11 @@ export function BassGrid({ track }: BassGridProps) {
                     return (
                       <div key={`divider-${barIndex}-${step}`} className="relative">
                         {isBeatStart ? (
-                          <span className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-base-content/50" />
+                          <span
+                            className={`absolute left-1/2 -translate-x-1/2 ${
+                              step === 0 ? 'top-[-0.5rem] h-[calc(100%+1rem)] w-[2px] bg-base-content/80' : 'top-0 h-full w-px bg-base-content/35'
+                            }`}
+                          />
                         ) : null}
                       </div>
                     );
