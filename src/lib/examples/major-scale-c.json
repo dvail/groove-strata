@@ -3,6 +3,7 @@
   "bass": {
     "patterns": [
       {
+        "id": "scale-pattern", 
         "length": {
           "bars": 2
         }, 
@@ -200,8 +201,7 @@
             }
           }
         ], 
-        "name": "C major scale", 
-        "id": "scale-pattern"
+        "name": "C major scale"
       }
     ], 
     "placements": [
@@ -218,11 +218,11 @@
       }
     ]
   }, 
-  "title": "Major Scale (C)", 
+  "artist": "Exercise", 
   "beat": {
     "events": []
   }, 
-  "artist": "Exercise", 
+  "title": "Major Scale (C)", 
   "ticksPerBeat": 240, 
   "source": {
     "notes": "C major scale up and down in eighth notes"
@@ -252,5 +252,6 @@
       "name": "Scale"
     }
   ], 
-  "id": "major-scale-c"
+  "id": "major-scale-c", 
+  "tonicMidi": 36
 }

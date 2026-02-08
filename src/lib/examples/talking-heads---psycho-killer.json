@@ -12,6 +12,7 @@
   "ticksPerBeat": 240,
   "tempoBpm": 123,
   "tonic": 9,
+  "tonicMidi": 33,
   "mode": "minor",
   "length": {
     "bars": 4

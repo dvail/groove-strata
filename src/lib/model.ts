@@ -239,6 +239,7 @@ export const TrackSchema = z.object({
   ticksPerBeat: z.number().int().positive(),
   tempoBpm: z.number().positive().optional(),
   tonic: PitchClassSchema,
+  tonicMidi: z.number().int().min(0).max(127).optional(),
   mode: ModeNameSchema.optional(),
   length: z.object({
     bars: z.number().int().positive(),

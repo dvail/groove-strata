@@ -11,6 +11,7 @@ type NoteSpan = {
   length: number;
   midi: number;
   interval: number;
+  octaveShift: -1 | 0 | 1;
 };
 
 type BarIndex = {
@@ -36,11 +37,21 @@ const buildNoteSpans = (track: Track, events: BassEvent[]): NoteSpan[] => {
     .map((event) => {
       const startTicks = timePointToTicks(track, event.start.bar, event.start.beat, event.start.tick ?? 0);
       const lengthTicks = durationToTicks(track, event.duration);
+      const tonicMidi = track.tonicMidi;
+      let octaveShift: -1 | 0 | 1 = 0;
+      if (tonicMidi !== undefined) {
+        if (event.pitch.midi >= tonicMidi + 12) {
+          octaveShift = 1;
+        } else if (event.pitch.midi < tonicMidi) {
+          octaveShift = -1;
+        }
+      }
       return {
         startStep: Math.floor(startTicks / ticksPerStep),
         length: Math.max(1, Math.round(lengthTicks / ticksPerStep)),
         midi: event.pitch.midi,
         interval: getIntervalIndex(event.pitch.midi, track.tonic),
+        octaveShift,
       };
     })
     .sort((a, b) => a.startStep - b.startStep);
@@ -76,6 +87,32 @@ const buildRowCells = (
           />,
         );
         stepOffset += maxLength;
+        continue;
+      }
+    }
+
+    if (variant === 'top') {
+      const span = spansByStart.get(globalStep);
+      if (span && span.octaveShift > 0) {
+        elements.push(
+          <div key={`marker-${globalStep}`} className="text-center font-bold text-base-content/70">
+            ^
+          </div>,
+        );
+        stepOffset += 1;
+        continue;
+      }
+    }
+
+    if (variant === 'bottom') {
+      const span = spansByStart.get(globalStep);
+      if (span && span.octaveShift < 0) {
+        elements.push(
+          <div key={`marker-${globalStep}`} className="text-center font-bold text-base-content/70">
+            v
+          </div>,
+        );
+        stepOffset += 1;
         continue;
       }
     }
