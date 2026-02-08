@@ -3,3 +3,20 @@
 @plugin "daisyui" {
   themes: light --default, dark --prefersdark, cupcake;
 }
+
+:root {
+  --grid-step-size: 1rem;
+
+  --interval-0: #111111;
+  --interval-1: #a6e22e;
+  --interval-2: #5ec962;
+  --interval-3: #1f77b4;
+  --interval-4: #d7263d;
+  --interval-5: #d0d0d0;
+  --interval-6: #7a4a2e;
+  --interval-7: #ffffff;
+  --interval-8: #5a3e85;
+  --interval-9: #9b7edb;
+  --interval-10: #f2c200;
+  --interval-11: #ffe0b8;
+}

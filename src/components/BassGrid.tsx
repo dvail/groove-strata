@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { expandBassEvents } from '../lib/expand';
+import { getIntervalIndex, intervalColor, GRID_STEP_VAR } from '../lib/intervals';
 import type { BassEvent, Track } from '../lib/model';
 
 const STEPS_PER_BEAT = 4;
@@ -9,6 +10,7 @@ type NoteSpan = {
   startStep: number;
   length: number;
   midi: number;
+  interval: number;
 };
 
 const isStaccato = (event: BassEvent) => event.tags?.includes('staccato') ?? false;
@@ -40,6 +42,7 @@ const buildNoteSpans = (track: Track, events: BassEvent[]): NoteSpan[] => {
         startStep: Math.floor(startTicks / ticksPerStep),
         length: isStaccato(event) ? 1 : Math.max(1, Math.round(lengthTicks / ticksPerStep)),
         midi: event.pitch.midi,
+        interval: getIntervalIndex(event.pitch.midi, track.tonic),
       };
     })
     .sort((a, b) => a.startStep - b.startStep);
@@ -63,9 +66,13 @@ const buildRowCells = (
         elements.push(
           <div
             key={`note-${globalStep}`}
-            className="h-full w-full rounded-full bg-black"
-            style={{ gridColumnEnd: `span ${maxLength}` }}
+            className="h-full w-full rounded-full"
+            style={{
+              gridColumnEnd: `span ${maxLength}`,
+              backgroundColor: intervalColor(span.interval),
+            }}
             data-midi={span.midi}
+            data-interval={span.interval}
             title={`MIDI ${span.midi}`}
           />,
         );
@@ -95,7 +102,7 @@ export function BassGrid({ track }: BassGridProps) {
   const stepsPerBar = track.timeSignature.beatsPerBar * STEPS_PER_BEAT;
   const spans = buildNoteSpans(track, bassEvents);
   const spansByStart = new Map(spans.map((span) => [span.startStep, span]));
-  const stepSize = '1rem';
+  const stepSize = `var(${GRID_STEP_VAR})`;
   const barWidth = `calc(${stepsPerBar} * ${stepSize})`;
   const bars: BarIndex[] = Array.from({ length: totalBars }, (_, index) => ({
     startStep: index * stepsPerBar,
