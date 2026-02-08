@@ -84,7 +84,7 @@
           },
           {
             "start": { "bar": 1, "beat": 3 },
-            "duration": { "beats": 1 },
+            "duration": { "beats": 0.75 },
             "pitch": { "midi": 31 }
           }
         ]

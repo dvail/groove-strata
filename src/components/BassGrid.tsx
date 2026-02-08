@@ -11,6 +11,8 @@ type NoteSpan = {
   midi: number;
 };
 
+const isStaccato = (event: BassEvent) => event.tags?.includes('staccato') ?? false;
+
 type BarIndex = {
   startStep: number;
 };
@@ -36,7 +38,7 @@ const buildNoteSpans = (track: Track, events: BassEvent[]): NoteSpan[] => {
       const lengthTicks = durationToTicks(track, event.duration);
       return {
         startStep: Math.floor(startTicks / ticksPerStep),
-        length: Math.max(1, Math.round(lengthTicks / ticksPerStep)),
+        length: isStaccato(event) ? 1 : Math.max(1, Math.round(lengthTicks / ticksPerStep)),
         midi: event.pitch.midi,
       };
     })
@@ -61,7 +63,7 @@ const buildRowCells = (
         elements.push(
           <div
             key={`note-${globalStep}`}
-            className="h-2 w-full rounded-full bg-black"
+            className="h-full w-full rounded-full bg-black"
             style={{ gridColumnEnd: `span ${maxLength}` }}
             data-midi={span.midi}
             title={`MIDI ${span.midi}`}
@@ -93,8 +95,8 @@ export function BassGrid({ track }: BassGridProps) {
   const stepsPerBar = track.timeSignature.beatsPerBar * STEPS_PER_BEAT;
   const spans = buildNoteSpans(track, bassEvents);
   const spansByStart = new Map(spans.map((span) => [span.startStep, span]));
-  const barWidth = `calc(${stepsPerBar} * 1rem)`;
-  const stepSize = '1.5rem';
+  const stepSize = '1rem';
+  const barWidth = `calc(${stepsPerBar} * ${stepSize})`;
   const bars: BarIndex[] = Array.from({ length: totalBars }, (_, index) => ({
     startStep: index * stepsPerBar,
   }));
@@ -112,8 +114,11 @@ export function BassGrid({ track }: BassGridProps) {
             <div key={`bar-${barIndex}`} className="bg-base-200 px-0 py-2" style={{ width: barWidth }}>
               <div className="relative">
                 <div
-                  className="pointer-events-none absolute inset-0 grid grid-flow-col auto-cols-[1rem]"
-                  style={{ gridTemplateColumns: `repeat(${stepsPerBar}, minmax(0, ${stepSize}))` }}
+                  className="pointer-events-none absolute inset-0 grid grid-flow-col"
+                  style={{
+                    gridTemplateColumns: `repeat(${stepsPerBar}, minmax(0, ${stepSize}))`,
+                    gridAutoColumns: stepSize,
+                  }}
                   aria-hidden
                 >
                   {Array.from({ length: stepsPerBar }, (_, step) => {
@@ -132,22 +137,34 @@ export function BassGrid({ track }: BassGridProps) {
                   })}
                 </div>
 
-                <div className="relative grid gap-2">
+                <div className="relative grid gap-0">
                   <div
-                    className="grid grid-flow-col auto-cols-[1rem] text-base-content/30"
-                    style={{ gridTemplateColumns: `repeat(${stepsPerBar}, minmax(0, ${stepSize}))` }}
+                    className="grid grid-flow-col items-center text-base-content/30 leading-none"
+                    style={{
+                      gridTemplateColumns: `repeat(${stepsPerBar}, minmax(0, ${stepSize}))`,
+                      gridAutoColumns: stepSize,
+                      height: stepSize,
+                    }}
                   >
                     {buildRowCells(bar.startStep, stepsPerBar, spansByStart, 'top')}
                   </div>
                   <div
-                    className="grid grid-flow-col auto-cols-[1rem] items-center"
-                    style={{ gridTemplateColumns: `repeat(${stepsPerBar}, minmax(0, ${stepSize}))` }}
+                    className="grid grid-flow-col items-center leading-none"
+                    style={{
+                      gridTemplateColumns: `repeat(${stepsPerBar}, minmax(0, ${stepSize}))`,
+                      gridAutoColumns: stepSize,
+                      height: stepSize,
+                    }}
                   >
                     {buildRowCells(bar.startStep, stepsPerBar, spansByStart, 'middle')}
                   </div>
                   <div
-                    className="grid grid-flow-col auto-cols-[1rem] text-base-content/30"
-                    style={{ gridTemplateColumns: `repeat(${stepsPerBar}, minmax(0, ${stepSize}))` }}
+                    className="grid grid-flow-col items-center text-base-content/30 leading-none"
+                    style={{
+                      gridTemplateColumns: `repeat(${stepsPerBar}, minmax(0, ${stepSize}))`,
+                      gridAutoColumns: stepSize,
+                      height: stepSize,
+                    }}
                   >
                     {buildRowCells(bar.startStep, stepsPerBar, spansByStart, 'bottom')}
                   </div>
