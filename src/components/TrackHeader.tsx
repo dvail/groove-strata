@@ -16,18 +16,18 @@ export function TrackHeader({ track }: TrackHeaderProps) {
         <h1 className="mt-2 text-3xl font-semibold">{track.title}</h1>
         <p className="mt-1 text-base text-base-content/60">{track.artist ?? 'Unknown Artist'}</p>
       </div>
-      <div className="stats stats-vertical bg-base-100 shadow lg:stats-horizontal">
+      <div className="stats stats-horizontal bg-base-100 shadow">
         <div className="stat">
-          <div className="stat-title">Tonic</div>
-          <div className="stat-value text-xl">{tonicName}</div>
+          <div className="stat-title text-xs">Tonic</div>
+          <div className="stat-value text-lg">{tonicName}</div>
         </div>
         <div className="stat">
-          <div className="stat-title">Tempo</div>
-          <div className="stat-value text-xl">{track.tempoBpm ?? '—'}</div>
+          <div className="stat-title text-xs">Tempo</div>
+          <div className="stat-value text-lg">{track.tempoBpm ?? '—'}</div>
         </div>
         <div className="stat">
-          <div className="stat-title">Bars</div>
-          <div className="stat-value text-xl">{track.length.bars}</div>
+          <div className="stat-title text-xs">Bars</div>
+          <div className="stat-value text-lg">{track.length.bars}</div>
         </div>
       </div>
     </div>
