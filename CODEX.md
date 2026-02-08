@@ -44,3 +44,11 @@ Codex must:
 
 - Color mapping: `docs/design/color-system.md`
 - Mental model: `docs/design/tonal-vs-chord.md`
+
+## Tools
+
+This project is built with TypeScript, React, DaisyUI, TailwindCSS, and Zod, so use those tools appropriately when generating code. Check package.json for versions to ensure compatibility.
+
+## UI
+
+You can reference https://daisyui.com/llms.txt in context to understand more about DaisyUI
