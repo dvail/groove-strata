@@ -16,6 +16,8 @@ Default interpretation is **tonal-centric** (interval relative to tonic).
 
 ## Mapping (interval -> color)
 
+**Note - these colors should be defined in a central location. They _will not_ remain what is stated here indefinitely.**
+
 Authority / structure:
 
 - Root / Octave: `#111111`
@@ -42,8 +44,3 @@ Tonal identity:
 
 - Minor 6th: `#5A3E85` (deep purple)
 - Major 6th: `#9B7EDB` (lighter lavender)
-
-## Notes
-
-- Do not “normalize” M3/m3; they must remain distinct.
-- If m7 vs M7 ever confuses in dense views, add a dashed outline for M7 (structural cue, not new hue).

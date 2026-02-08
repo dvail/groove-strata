@@ -2,8 +2,7 @@
 
 ## Goal
 
-Build a bass-line visualization tool. Default interpretation is **tonal-centric** (intervals relative to global tonic).
-Chord-centric is a secondary toggle (optional).
+Build a bass-line visualization tool. Default interpretation is **tonal-centric** (intervals relative to global tonic). Visualize bass lines relative to drum beat skeleton and chord progressions when defined.
 
 ## Non-goals (for now)
 
@@ -25,6 +24,13 @@ Chord-centric is a secondary toggle (optional).
    - what changed
    - how to verify
    - known limitations
+   - git commits prefixed with task(<id>)
+
+Codex must:
+
+- work on one task at a time
+- not skip task numbers
+- mark tasks complete when finished
 
 ## Commands
 
