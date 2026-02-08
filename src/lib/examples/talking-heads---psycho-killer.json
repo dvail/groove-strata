@@ -1,105 +1,172 @@
 {
-  "id": "talking-heads-psycho-killer-minimal",
-  "title": "Psycho Killer (Minimal)",
-  "artist": "Talking Heads",
-  "source": {
-    "notes": "Minimal bass riff example for testing"
-  },
-  "timeSignature": {
-    "beatsPerBar": 4,
-    "beatUnit": 4
-  },
-  "ticksPerBeat": 240,
-  "tempoBpm": 123,
   "tonic": 9,
-  "mode": "minor",
-  "length": {
-    "bars": 8
-  },
-  "sections": [
-    {
-      "id": "riff",
-      "name": "Riff",
-      "kind": "verse",
-      "span": {
-        "start": { "bar": 0, "beat": 0 },
-        "duration": { "bars": 8 }
-      }
-    }
-  ],
   "bass": {
     "patterns": [
       {
-        "id": "psycho-killer-riff",
-        "name": "Main riff",
-        "length": { "bars": 2 },
         "events": [
           {
-            "start": { "bar": 0, "beat": 0 },
-            "duration": { "beats": 1 },
-            "pitch": { "midi": 33 },
-            "tags": ["staccato"]
+            "duration": {
+              "beats": 0.25
+            },
+            "start": {
+              "beat": 0,
+              "bar": 0
+            },
+            "pitch": {
+              "midi": 33
+            }
           },
           {
-            "start": { "bar": 0, "beat": 1 },
-            "duration": { "beats": 1 },
-            "pitch": { "midi": 33 },
-            "tags": ["staccato"]
+            "duration": {
+              "beats": 0.25
+            },
+            "start": {
+              "beat": 1,
+              "bar": 0
+            },
+            "pitch": {
+              "midi": 33
+            }
           },
           {
-            "start": { "bar": 0, "beat": 2 },
-            "duration": { "beats": 1 },
-            "pitch": { "midi": 33 },
-            "tags": ["staccato"]
+            "duration": {
+              "beats": 0.25
+            },
+            "start": {
+              "beat": 2,
+              "bar": 0
+            },
+            "pitch": {
+              "midi": 33
+            }
           },
           {
-            "start": { "bar": 0, "beat": 3 },
-            "duration": { "beats": 1 },
-            "pitch": { "midi": 33 },
-            "tags": ["staccato"]
+            "duration": {
+              "beats": 0.25
+            },
+            "start": {
+              "beat": 3,
+              "bar": 0
+            },
+            "pitch": {
+              "midi": 33
+            }
           },
           {
-            "start": { "bar": 1, "beat": 0 },
-            "duration": { "beats": 1 },
-            "pitch": { "midi": 33 },
-            "tags": ["staccato"]
+            "duration": {
+              "beats": 0.25
+            },
+            "start": {
+              "beat": 0,
+              "bar": 1
+            },
+            "pitch": {
+              "midi": 33
+            }
           },
           {
-            "start": { "bar": 1, "beat": 1 },
-            "duration": { "beats": 1 },
-            "pitch": { "midi": 33 },
-            "tags": ["staccato"]
+            "duration": {
+              "beats": 0.25
+            },
+            "start": {
+              "beat": 1,
+              "bar": 1
+            },
+            "pitch": {
+              "midi": 33
+            }
           },
           {
-            "start": { "bar": 1, "beat": 2 },
-            "duration": { "beats": 0.5 },
-            "pitch": { "midi": 33 },
-            "tags": ["staccato"]
+            "duration": {
+              "beats": 0.25
+            },
+            "start": {
+              "beat": 2,
+              "bar": 1
+            },
+            "pitch": {
+              "midi": 33
+            }
           },
           {
-            "start": { "bar": 1, "beat": 2.5 },
-            "duration": { "beats": 0.5 },
-            "pitch": { "midi": 28 },
-            "tags": ["staccato"]
+            "duration": {
+              "beats": 0.25
+            },
+            "start": {
+              "beat": 2.5,
+              "bar": 1
+            },
+            "pitch": {
+              "midi": 28
+            }
           },
           {
-            "start": { "bar": 1, "beat": 3 },
-            "duration": { "beats": 0.75 },
-            "pitch": { "midi": 31 }
+            "duration": {
+              "beats": 0.75
+            },
+            "start": {
+              "beat": 3,
+              "bar": 1
+            },
+            "pitch": {
+              "midi": 31
+            }
           }
-        ]
+        ],
+        "length": {
+          "bars": 2
+        },
+        "id": "psycho-killer-riff",
+        "name": "Main riff"
       }
     ],
     "placements": [
       {
-        "id": "riff-placement",
+        "start": {
+          "beat": 0,
+          "bar": 0
+        },
+        "repeat": {
+          "times": 4
+        },
         "patternId": "psycho-killer-riff",
-        "start": { "bar": 0, "beat": 0 },
-        "repeat": { "times": 4 }
+        "id": "riff-placement"
       }
     ]
   },
+  "artist": "Talking Heads",
   "beat": {
     "events": []
-  }
+  },
+  "title": "Psycho Killer (Verse)",
+  "ticksPerBeat": 240,
+  "source": {
+    "notes": "Minimal bass riff example for testing"
+  },
+  "length": {
+    "bars": 8
+  },
+  "tempoBpm": 123,
+  "mode": "minor",
+  "timeSignature": {
+    "beatsPerBar": 4,
+    "beatUnit": 4
+  },
+  "sections": [
+    {
+      "kind": "verse",
+      "span": {
+        "duration": {
+          "bars": 8
+        },
+        "start": {
+          "beat": 0,
+          "bar": 0
+        }
+      },
+      "id": "riff",
+      "name": "Riff"
+    }
+  ],
+  "id": "talking-heads-psycho-killer-minimal"
 }

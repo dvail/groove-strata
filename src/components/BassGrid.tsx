@@ -13,8 +13,6 @@ type NoteSpan = {
   interval: number;
 };
 
-const isStaccato = (event: BassEvent) => event.tags?.includes('staccato') ?? false;
-
 type BarIndex = {
   startStep: number;
 };
@@ -40,7 +38,7 @@ const buildNoteSpans = (track: Track, events: BassEvent[]): NoteSpan[] => {
       const lengthTicks = durationToTicks(track, event.duration);
       return {
         startStep: Math.floor(startTicks / ticksPerStep),
-        length: isStaccato(event) ? 1 : Math.max(1, Math.round(lengthTicks / ticksPerStep)),
+        length: Math.max(1, Math.round(lengthTicks / ticksPerStep)),
         midi: event.pitch.midi,
         interval: getIntervalIndex(event.pitch.midi, track.tonic),
       };
