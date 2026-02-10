@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { getIntervalIndex, intervalBorderColor, intervalColor, GRID_STEP_VAR } from '../lib/intervals';
 import type { BassEvent, Track } from '../lib/model';
 
-import { TrackHeader } from './TrackHeader';
+const PITCH_CLASS_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const;
 const STEPS_PER_BAR = 16;
 const MIN_MIDI = 23; // B0
 const MAX_MIDI = 72; // C5
@@ -114,6 +114,7 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
   const [title, setTitle] = useState(track.title);
   const [artist, setArtist] = useState(track.artist ?? '');
   const [tempoBpm, setTempoBpm] = useState(track.tempoBpm?.toString() ?? '120');
+  const [editingField, setEditingField] = useState<null | 'title' | 'artist' | 'tonic' | 'tempo'>(null);
   const [tonicName, setTonicName] = useState(getInitialTonicName(track));
   const [tonicOctave, setTonicOctave] = useState(getInitialTonicOctave(track));
   const [measures, setMeasures] = useState(track.length.bars);
@@ -137,7 +138,8 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
     return clampMidi(midi) ?? MIN_MIDI;
   }, [tonicOctave, tonicPc]);
 
-  const totalSteps = measures * STEPS_PER_BAR;
+  const displayTonic = `${PITCH_CLASS_NAMES[tonicPc] ?? 'C'}${tonicOctave}`;
+
   const stepSize = `var(${GRID_STEP_VAR})`;
   const barWidth = `calc(${STEPS_PER_BAR} * ${stepSize})`;
 
@@ -189,6 +191,30 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
     }
     return octaves;
   }, [tonicPc]);
+
+  const setCursorTo = (nextStep: number) => {
+    setCursorStep(() => {
+      const next = Math.max(0, nextStep);
+      setMeasures((prevMeasures) => {
+        let nextMeasures = prevMeasures;
+        if (next >= prevMeasures * STEPS_PER_BAR) {
+          nextMeasures = prevMeasures + 1;
+        } else if (prevMeasures > 1) {
+          const lastMeasureStart = (prevMeasures - 1) * STEPS_PER_BAR;
+          if (next < lastMeasureStart) {
+            const hasNotesInLast = notesRef.current.some(
+              (note) => note.startStep + note.length > lastMeasureStart,
+            );
+            if (!hasNotesInLast) {
+              nextMeasures = prevMeasures - 1;
+            }
+          }
+        }
+        return nextMeasures;
+      });
+      return next;
+    });
+  };
 
   const moveCursor = (delta: number) => {
     setCursorStep((prev) => {
@@ -325,8 +351,12 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
         },
       ];
     });
-    moveCursor(pendingNote.length);
+    setCursorTo(pendingNote.startStep + pendingNote.length);
     setPendingNote(null);
+  };
+
+  const stopEditorHotkeys = (event: React.KeyboardEvent<HTMLElement>) => {
+    event.stopPropagation();
   };
 
   const renderRow = (barIndex: number, row: 'top' | 'middle' | 'bottom') => {
@@ -440,57 +470,126 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
           <span className="text-xs uppercase text-base-content/50">Edit Mode</span>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
-          <div className="space-y-1">
-            <label className="text-xs uppercase text-base-content/50">Title</label>
-            <input
-              className="input input-bordered w-full"
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs uppercase text-base-content/50">Author</label>
-            <input
-              className="input input-bordered w-full"
-              value={artist}
-              onChange={(event) => setArtist(event.target.value)}
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs uppercase text-base-content/50">Tonic</label>
-            <div className="flex gap-2">
-              <select
-                className="select select-bordered"
-                value={tonicName}
-                onChange={(event) => setTonicName(event.target.value)}
+        <div className="flex flex-wrap items-start justify-between gap-6">
+          <div>
+            <p className="text-xs uppercase text-base-content/60">Track View</p>
+            {editingField === 'title' ? (
+              <input
+                className="input input-bordered mt-2 w-full text-3xl font-semibold"
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                onBlur={() => setEditingField(null)}
+                onKeyDown={stopEditorHotkeys}
+                onKeyUp={stopEditorHotkeys}
+                autoFocus
+              />
+            ) : (
+              <button
+                type="button"
+                className="mt-2 text-left text-3xl font-semibold"
+                onClick={() => setEditingField('title')}
               >
-                {NOTE_NAME_OPTIONS.map((option) => (
-                  <option key={option.label} value={option.label}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              <select
-                className="select select-bordered"
-                value={tonicOctave}
-                onChange={(event) => setTonicOctave(Number(event.target.value))}
+                {title || 'Untitled Track'}
+              </button>
+            )}
+            {editingField === 'artist' ? (
+              <div className="mt-2">
+                <input
+                  className="input input-bordered w-full text-base text-base-content/70"
+                  value={artist}
+                  onChange={(event) => setArtist(event.target.value)}
+                  onBlur={() => setEditingField(null)}
+                  onKeyDown={stopEditorHotkeys}
+                  onKeyUp={stopEditorHotkeys}
+                  autoFocus
+                />
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="mt-2 block text-left text-base text-base-content/60"
+                onClick={() => setEditingField('artist')}
               >
-                {availableOctaves.map((octave) => (
-                  <option key={octave} value={octave}>
-                    {octave}
-                  </option>
-                ))}
-              </select>
+                {artist || 'Unknown Artist'}
+              </button>
+            )}
+          </div>
+          <div className="stats stats-horizontal bg-base-100 shadow">
+            <div className="stat">
+              <div className="stat-title text-xs">Tonic</div>
+              {editingField === 'tonic' ? (
+                <div
+                  className="flex gap-2"
+                  onBlur={(event) => {
+                    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                      setEditingField(null);
+                    }
+                  }}
+                >
+                  <select
+                    className="select select-bordered select-sm"
+                    value={tonicName}
+                    onChange={(event) => setTonicName(event.target.value)}
+                    onKeyDown={stopEditorHotkeys}
+                    onKeyUp={stopEditorHotkeys}
+                    autoFocus
+                  >
+                    {NOTE_NAME_OPTIONS.map((option) => (
+                      <option key={option.label} value={option.label}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    className="select select-bordered select-sm"
+                    value={tonicOctave}
+                    onChange={(event) => setTonicOctave(Number(event.target.value))}
+                    onKeyDown={stopEditorHotkeys}
+                    onKeyUp={stopEditorHotkeys}
+                  >
+                    {availableOctaves.map((octave) => (
+                      <option key={octave} value={octave}>
+                        {octave}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="stat-value text-left text-lg"
+                  onClick={() => setEditingField('tonic')}
+                >
+                  {displayTonic}
+                </button>
+              )}
             </div>
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs uppercase text-base-content/50">Tempo</label>
-            <input
-              className="input input-bordered w-full"
-              value={tempoBpm}
-              onChange={(event) => setTempoBpm(event.target.value)}
-            />
+            <div className="stat">
+              <div className="stat-title text-xs">Tempo</div>
+              {editingField === 'tempo' ? (
+                <input
+                  className="input input-bordered input-sm w-24"
+                  value={tempoBpm}
+                  onChange={(event) => setTempoBpm(event.target.value)}
+                  onBlur={() => setEditingField(null)}
+                  onKeyDown={stopEditorHotkeys}
+                  onKeyUp={stopEditorHotkeys}
+                  autoFocus
+                />
+              ) : (
+                <button
+                  type="button"
+                  className="stat-value text-left text-lg"
+                  onClick={() => setEditingField('tempo')}
+                >
+                  {tempoBpm || '—'}
+                </button>
+              )}
+            </div>
+            <div className="stat">
+              <div className="stat-title text-xs">Bars</div>
+              <div className="stat-value text-lg">{measures}</div>
+            </div>
           </div>
         </div>
 
@@ -541,18 +640,6 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
             </div>
           ))}
         </div>
-
-        <TrackHeader
-          track={{
-            ...track,
-            title,
-            artist: artist || undefined,
-            tempoBpm: Number(tempoBpm) || undefined,
-            tonic: tonicPc,
-            tonicMidi,
-            length: { bars: measures },
-          }}
-        />
 
         <div className="text-xs text-base-content/50">
           Keyboard: Z X C V B N M (naturals), S D G H J (sharps). Hold left/right shift for octave.
