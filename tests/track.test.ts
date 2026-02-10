@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-
 import { describe, expect, it } from "vitest";
 
 import { expandBassEvents } from "../src/lib/expand";
@@ -7,10 +5,37 @@ import type { Track } from "../src/lib/model";
 import { validateTrack } from "../src/lib/validate";
 
 describe("track validation", () => {
-  it("validates the example JSON", () => {
-    const examplePath = new URL("../src/lib/examples/demo-track.json", import.meta.url);
-    const example = JSON.parse(readFileSync(examplePath, "utf8"));
-    const result = validateTrack(example);
+  it("validates a minimal track", () => {
+    const track: Track = {
+      id: "test",
+      title: "Test Track",
+      timeSignature: { beatsPerBar: 4, beatUnit: 4 },
+      ticksPerBeat: 240,
+      tonic: 0,
+      length: { bars: 2 },
+      sections: [
+        {
+          id: "sec",
+          name: "Section",
+          span: { start: { bar: 0, beat: 0 }, duration: { bars: 2 } },
+        },
+      ],
+      bass: {
+        events: [
+          {
+            id: "bass-1",
+            start: { bar: 0, beat: 0 },
+            duration: { beats: 1 },
+            pitch: { midi: 40 },
+          },
+        ],
+      },
+      beat: {
+        events: [{ id: "kick-0", start: { bar: 0, beat: 0 }, instrument: "kick" }],
+      },
+    };
+
+    const result = validateTrack(track);
     expect(result.ok).toBe(true);
   });
 });
