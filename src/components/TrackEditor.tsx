@@ -279,6 +279,29 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
       return;
     }
 
+    if (event.code === 'ArrowUp' || event.code === 'ArrowDown') {
+      event.preventDefault();
+      const delta = event.code === 'ArrowUp' ? 1 : -1;
+      if (pendingNote) {
+        setPendingNote((prev) => {
+          if (!prev) return prev;
+          const nextMidi = clampMidi(prev.midi + delta);
+          if (nextMidi === null) return prev;
+          return { ...prev, midi: nextMidi };
+        });
+        return;
+      }
+
+      setNotes((prev) => {
+        const note = findNoteAtStep(prev, cursorStep);
+        if (!note) return prev;
+        const nextMidi = clampMidi(note.midi + delta);
+        if (nextMidi === null) return prev;
+        return prev.map((item) => (item.id === note.id ? { ...item, midi: nextMidi } : item));
+      });
+      return;
+    }
+
     if (event.code === 'ArrowLeft') {
       event.preventDefault();
       if (!pendingNote) {
