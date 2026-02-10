@@ -1,4 +1,73 @@
+import { useEffect, useMemo, useState } from 'react';
+
+import { fetchTrackIndex } from './lib/library';
+import type { TrackIndexEntry } from './lib/library';
+
 function App() {
+  const [tracks, setTracks] = useState<TrackIndexEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    fetchTrackIndex()
+      .then((index) => {
+        if (isMounted) {
+          setTracks(index.tracks);
+          setError(null);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : 'Failed to load track index');
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const listItems = useMemo(() => {
+    if (isLoading) {
+      return (
+        <li>
+          <span className="text-base-content/60">Loading tracks…</span>
+        </li>
+      );
+    }
+
+    if (error) {
+      return (
+        <li>
+          <span className="text-error">{error}</span>
+        </li>
+      );
+    }
+
+    if (tracks.length === 0) {
+      return (
+        <li>
+          <span className="text-base-content/60">No tracks available.</span>
+        </li>
+      );
+    }
+
+    return tracks.map((track) => (
+      <li key={track.id}>
+        <button type="button" className="justify-between">
+          <span>{track.title}</span>
+          <span className="text-xs text-base-content/50">{track.artist}</span>
+        </button>
+      </li>
+    ));
+  }, [error, isLoading, tracks]);
+
   return (
     <div data-theme="cupcake" className="min-h-screen bg-base-200">
       <div className="drawer lg:drawer-open">
@@ -49,11 +118,7 @@ function App() {
                 ✕
               </label>
             </div>
-            <ul className="menu mt-4 rounded-box bg-base-200 p-2 text-sm">
-              <li>
-                <span className="text-base-content/60">Track list will appear here.</span>
-              </li>
-            </ul>
+            <ul className="menu mt-4 rounded-box bg-base-200 p-2 text-sm">{listItems}</ul>
           </aside>
         </div>
       </div>
