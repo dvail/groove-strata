@@ -1,27 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { getIntervalIndex, intervalBorderColor, intervalColor, GRID_STEP_VAR } from '../lib/intervals';
-import type { BassEvent, Track } from '../lib/model';
-
-const PITCH_CLASS_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const;
-const STEPS_PER_BAR = 16;
-const MIN_MIDI = 23; // B0
-const MAX_MIDI = 72; // C5
-
-const NOTE_KEY_MAP: Record<string, number> = {
-  z: 0,
-  x: 2,
-  c: 4,
-  v: 5,
-  b: 7,
-  n: 9,
-  m: 11,
-  s: 1,
-  d: 3,
-  g: 6,
-  h: 8,
-  j: 10,
-};
+import type { Track } from '../lib/model';
+import {
+  STEPS_PER_BAR,
+  NOTE_KEY_MAP,
+  MIN_MIDI,
+  MAX_MIDI,
+  buildBassEvents,
+  clampMidi,
+  computeNoteMidi,
+  findNoteAtStep,
+  removeOverlappingNotes,
+  slugify,
+  toMidi,
+} from '../lib/editor-utils';
 
 const NOTE_NAME_OPTIONS = [
   { label: 'C', pc: 0 },
@@ -62,21 +55,7 @@ type TrackEditorProps = {
   onClose: () => void;
 };
 
-const toMidi = (pc: number, octave: number) => (octave + 1) * 12 + pc;
-
-const clampMidi = (midi: number) => (midi < MIN_MIDI || midi > MAX_MIDI ? null : midi);
-
-const removeOverlappingNotes = (notes: EditorNote[], start: number, length: number) => {
-  const end = start + length;
-  return notes.filter((note) => {
-    const noteEnd = note.startStep + note.length;
-    const overlaps = start < noteEnd && end > note.startStep;
-    return !overlaps;
-  });
-};
-
-const findNoteAtStep = (notes: EditorNote[], step: number) =>
-  notes.find((note) => step >= note.startStep && step < note.startStep + note.length);
+const PITCH_CLASS_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const;
 
 const getInitialTonicName = (track: Track) => {
   const match = NOTE_NAME_OPTIONS.find((option) => option.pc === track.tonic);
@@ -87,27 +66,6 @@ const getInitialTonicOctave = (track: Track) => {
   if (track.tonicMidi === undefined) return 1;
   return Math.floor(track.tonicMidi / 12) - 1;
 };
-
-const slugify = (value: string) =>
-  value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '') || 'untitled';
-
-const buildBassEvents = (notes: EditorNote[]): BassEvent[] =>
-  notes
-    .slice()
-    .sort((a, b) => a.startStep - b.startStep)
-    .map((note, index) => ({
-      id: `note-${index + 1}`,
-      start: {
-        bar: Math.floor(note.startStep / STEPS_PER_BAR),
-        beat: (note.startStep % STEPS_PER_BAR) / 4,
-      },
-      duration: { beats: note.length / 4 },
-      pitch: { midi: note.midi },
-    }));
 
 export function TrackEditor({ track, onClose }: TrackEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -142,44 +100,6 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
 
   const stepSize = `var(${GRID_STEP_VAR})`;
   const barWidth = `calc(${STEPS_PER_BAR} * ${stepSize})`;
-
-  const handleExport = () => {
-    const artistSlug = slugify(artist || 'unknown-artist');
-    const titleSlug = slugify(title || 'untitled');
-    const exportTrack: Track = {
-      id: `${artistSlug}--${titleSlug}`,
-      title: title || 'Untitled Track',
-      artist: artist || undefined,
-      timeSignature: { beatsPerBar: 4, beatUnit: 4 },
-      ticksPerBeat: 240,
-      tonic: tonicPc,
-      tonicMidi,
-      tempoBpm: Number(tempoBpm) || undefined,
-      length: { bars: measures },
-      sections: [
-        {
-          id: 'section-1',
-          name: 'Section 1',
-          span: { start: { bar: 0, beat: 0 }, duration: { bars: measures } },
-        },
-      ],
-      bass: {
-        events: buildBassEvents(notes),
-      },
-      beat: {
-        events: [],
-      },
-    };
-
-    const fileName = `${artistSlug}--${titleSlug}.json`;
-    const blob = new Blob([JSON.stringify(exportTrack, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = fileName;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
 
   const availableOctaves = useMemo(() => {
     const octaves: number[] = [];
@@ -332,9 +252,7 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
     }
 
     const pc = NOTE_KEY_MAP[key];
-    const baseOctave = Math.floor(tonicMidi / 12) - 1;
-    const octaveOffset = shiftState.right ? 1 : shiftState.left ? -1 : 0;
-    const midi = clampMidi(toMidi(pc, baseOctave + octaveOffset));
+    const midi = computeNoteMidi(pc, tonicMidi, shiftState);
     if (midi === null) {
       return;
     }
@@ -380,6 +298,44 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
 
   const stopEditorHotkeys = (event: React.KeyboardEvent<HTMLElement>) => {
     event.stopPropagation();
+  };
+
+  const handleExport = () => {
+    const artistSlug = slugify(artist || 'unknown-artist');
+    const titleSlug = slugify(title || 'untitled');
+    const exportTrack: Track = {
+      id: `${artistSlug}--${titleSlug}`,
+      title: title || 'Untitled Track',
+      artist: artist || undefined,
+      timeSignature: { beatsPerBar: 4, beatUnit: 4 },
+      ticksPerBeat: 240,
+      tonic: tonicPc,
+      tonicMidi,
+      tempoBpm: Number(tempoBpm) || undefined,
+      length: { bars: measures },
+      sections: [
+        {
+          id: 'section-1',
+          name: 'Section 1',
+          span: { start: { bar: 0, beat: 0 }, duration: { bars: measures } },
+        },
+      ],
+      bass: {
+        events: buildBassEvents(notes),
+      },
+      beat: {
+        events: [],
+      },
+    };
+
+    const fileName = `${artistSlug}--${titleSlug}.json`;
+    const blob = new Blob([JSON.stringify(exportTrack, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   const renderRow = (barIndex: number, row: 'top' | 'middle' | 'bottom') => {
@@ -635,7 +591,9 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
                         {isBeatStart ? (
                           <span
                             className={`absolute left-1/2 -translate-x-1/2 ${
-                              step === 0 ? 'top-[-0.35rem] h-[calc(100%+0.7rem)] w-[2px] bg-base-content/80' : 'top-0 h-full w-px bg-base-content/35'
+                              step === 0
+                                ? 'top-[-0.35rem] h-[calc(100%+0.7rem)] w-[2px] bg-base-content/80'
+                                : 'top-0 h-full w-px bg-base-content/35'
                             }`}
                           />
                         ) : null}
