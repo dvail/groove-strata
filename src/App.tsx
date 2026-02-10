@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { Legend } from './components/Legend';
+import { TrackEditor } from './components/TrackEditor';
 import { TrackView } from './components/TrackView';
+import { createEmptyTrack } from './lib/editor';
 import { fetchTrackIndex, fetchTrackJson, getDefaultLibraryBaseUrl } from './lib/library';
 import type { TrackIndexEntry } from './lib/library';
 import type { Track } from './lib/model';
@@ -14,6 +16,8 @@ function App() {
   const [loadingTrackIds, setLoadingTrackIds] = useState<Set<string>>(new Set());
   const [libraryUrlInput, setLibraryUrlInput] = useState(getDefaultLibraryBaseUrl());
   const [libraryUrl, setLibraryUrl] = useState(getDefaultLibraryBaseUrl());
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [draftTrack, setDraftTrack] = useState<Track | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -70,6 +74,17 @@ function App() {
 
   const handleApplyLibraryUrl = () => {
     setLibraryUrl(libraryUrlInput.trim().replace(/\/$/, ''));
+  };
+
+  const handleOpenEditor = () => {
+    if (isEditorOpen) return;
+    setDraftTrack(createEmptyTrack());
+    setIsEditorOpen(true);
+  };
+
+  const handleCloseEditor = () => {
+    setIsEditorOpen(false);
+    setDraftTrack(null);
   };
 
   let listItems: React.ReactNode;
@@ -131,7 +146,11 @@ function App() {
           <div className="container mx-auto flex flex-col gap-8 px-6 py-8">
             {openTracks.length > 0 ? <Legend /> : null}
 
-            {openTracks.length === 0 ? (
+            {isEditorOpen && draftTrack ? (
+              <TrackEditor track={draftTrack} onClose={handleCloseEditor} />
+            ) : null}
+
+            {openTracks.length === 0 && !isEditorOpen ? (
               <div className="card border border-base-300 bg-base-100 shadow-sm">
                 <div className="card-body gap-4">
                   <div className="flex items-center justify-between gap-4">
@@ -150,13 +169,15 @@ function App() {
                   </div>
                 </div>
               </div>
-            ) : (
+            ) : null}
+
+            {openTracks.length > 0 ? (
               <div className="flex flex-col gap-6">
                 {openTracks.map((track) => (
                   <TrackView key={track.id} track={track} onClose={() => handleCloseTrack(track.id)} />
                 ))}
               </div>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -192,6 +213,15 @@ function App() {
           </aside>
         </div>
       </div>
+
+      <button
+        type="button"
+        className="btn btn-primary btn-circle fixed bottom-6 right-6 text-xl shadow-lg"
+        onClick={handleOpenEditor}
+        aria-label="Create track"
+      >
+        +
+      </button>
     </div>
   );
 }
