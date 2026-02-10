@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { Legend } from './components/Legend';
 import { TrackView } from './components/TrackView';
-import { fetchTrackIndex, fetchTrackJson } from './lib/library';
+import { fetchTrackIndex, fetchTrackJson, getDefaultLibraryBaseUrl } from './lib/library';
 import type { TrackIndexEntry } from './lib/library';
 import type { Track } from './lib/model';
 
@@ -12,10 +12,13 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [openTracks, setOpenTracks] = useState<Track[]>([]);
   const [loadingTrackIds, setLoadingTrackIds] = useState<Set<string>>(new Set());
+  const [libraryUrlInput, setLibraryUrlInput] = useState(getDefaultLibraryBaseUrl());
+  const [libraryUrl, setLibraryUrl] = useState(getDefaultLibraryBaseUrl());
 
   useEffect(() => {
     let isMounted = true;
-    fetchTrackIndex()
+    setIsLoading(true);
+    fetchTrackIndex(libraryUrl)
       .then((index) => {
         if (isMounted) {
           setTracks(index.tracks);
@@ -24,6 +27,7 @@ function App() {
       })
       .catch((err) => {
         if (isMounted) {
+          setTracks([]);
           setError(err instanceof Error ? err.message : 'Failed to load track index');
         }
       })
@@ -36,7 +40,7 @@ function App() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [libraryUrl]);
 
   const openTrackIds = useMemo(() => new Set(openTracks.map((track) => track.id)), [openTracks]);
 
@@ -47,7 +51,7 @@ function App() {
 
     setLoadingTrackIds((prev) => new Set(prev).add(entry.id));
     try {
-      const track = (await fetchTrackJson(entry.path)) as Track;
+      const track = (await fetchTrackJson(libraryUrl, entry.path)) as Track;
       setOpenTracks((prev) => [track, ...prev]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load track');
@@ -62,6 +66,10 @@ function App() {
 
   const handleCloseTrack = (trackId: string) => {
     setOpenTracks((prev) => prev.filter((track) => track.id !== trackId));
+  };
+
+  const handleApplyLibraryUrl = () => {
+    setLibraryUrl(libraryUrlInput.trim().replace(/\/$/, ''));
   };
 
   let listItems: React.ReactNode;
@@ -154,13 +162,32 @@ function App() {
 
         <div className="drawer-side">
           <label htmlFor="track-drawer" className="drawer-overlay" aria-label="Close sidebar" />
-          <aside className="min-h-full w-72 bg-base-100 p-6">
+          <aside className="min-h-full w-80 bg-base-100 p-6">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-base-content/70">Tracks</h2>
               <label htmlFor="track-drawer" className="btn btn-circle btn-ghost btn-xs lg:hidden">
                 ✕
               </label>
             </div>
+
+            <div className="mt-4 flex flex-col gap-2">
+              <label className="text-xs uppercase tracking-wide text-base-content/50" htmlFor="library-url">
+                Library URL
+              </label>
+              <div className="join">
+                <input
+                  id="library-url"
+                  className="input input-bordered join-item w-full text-xs"
+                  value={libraryUrlInput}
+                  onChange={(event) => setLibraryUrlInput(event.target.value)}
+                />
+                <button type="button" className="btn join-item" onClick={handleApplyLibraryUrl}>
+                  Apply
+                </button>
+              </div>
+              {error ? <p className="text-xs text-error">{error}</p> : null}
+            </div>
+
             <ul className="menu mt-4 rounded-box bg-base-200 p-2 text-sm">{listItems}</ul>
           </aside>
         </div>
