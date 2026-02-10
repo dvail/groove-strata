@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 
 import { getIntervalIndex, intervalBorderColor, intervalColor, GRID_STEP_VAR } from '../lib/intervals';
-import type { Track } from '../lib/model';
+import type { BassEvent, Track } from '../lib/model';
 
 import { TrackHeader } from './TrackHeader';
 const STEPS_PER_BAR = 16;
@@ -88,6 +88,27 @@ const getInitialTonicOctave = (track: Track) => {
   return Math.floor(track.tonicMidi / 12) - 1;
 };
 
+const slugify = (value: string) =>
+  value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'untitled';
+
+const buildBassEvents = (notes: EditorNote[]): BassEvent[] =>
+  notes
+    .slice()
+    .sort((a, b) => a.startStep - b.startStep)
+    .map((note, index) => ({
+      id: `note-${index + 1}`,
+      start: {
+        bar: Math.floor(note.startStep / STEPS_PER_BAR),
+        beat: (note.startStep % STEPS_PER_BAR) / 4,
+      },
+      duration: { beats: note.length / 4 },
+      pitch: { midi: note.midi },
+    }));
+
 export function TrackEditor({ track, onClose }: TrackEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [title, setTitle] = useState(track.title);
@@ -114,6 +135,44 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
   const totalSteps = measures * STEPS_PER_BAR;
   const stepSize = `var(${GRID_STEP_VAR})`;
   const barWidth = `calc(${STEPS_PER_BAR} * ${stepSize})`;
+
+  const handleExport = () => {
+    const artistSlug = slugify(artist || 'unknown-artist');
+    const titleSlug = slugify(title || 'untitled');
+    const exportTrack: Track = {
+      id: `${artistSlug}--${titleSlug}`,
+      title: title || 'Untitled Track',
+      artist: artist || undefined,
+      timeSignature: { beatsPerBar: 4, beatUnit: 4 },
+      ticksPerBeat: 240,
+      tonic: tonicPc,
+      tonicMidi,
+      tempoBpm: Number(tempoBpm) || undefined,
+      length: { bars: measures },
+      sections: [
+        {
+          id: 'section-1',
+          name: 'Section 1',
+          span: { start: { bar: 0, beat: 0 }, duration: { bars: measures } },
+        },
+      ],
+      bass: {
+        events: buildBassEvents(notes),
+      },
+      beat: {
+        events: [],
+      },
+    };
+
+    const fileName = `${artistSlug}--${titleSlug}.json`;
+    const blob = new Blob([JSON.stringify(exportTrack, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   const availableOctaves = useMemo(() => {
     const octaves: number[] = [];
@@ -365,7 +424,14 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
               aria-label="Close editor"
             />
             <div className="h-4 w-4 rounded-full border border-base-300 bg-warning/70" />
-            <div className="h-4 w-4 rounded-full border border-base-300 bg-success/70" />
+            <div className="tooltip tooltip-bottom flex items-center" data-tip="Export track">
+              <button
+                type="button"
+                className="h-4 w-4 cursor-pointer rounded-full border border-base-300 bg-success/70"
+                onClick={handleExport}
+                aria-label="Export track"
+              />
+            </div>
           </div>
           <span className="text-xs uppercase text-base-content/50">Edit Mode</span>
         </div>
