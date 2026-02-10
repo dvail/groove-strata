@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { getIntervalIndex, intervalBorderColor, intervalColor, GRID_STEP_VAR } from '../lib/intervals';
 import type { BassEvent, Track } from '../lib/model';
@@ -121,6 +121,11 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
   const [notes, setNotes] = useState<EditorNote[]>([]);
   const [pendingNote, setPendingNote] = useState<PendingNote | null>(null);
   const [shiftState, setShiftState] = useState({ left: false, right: false });
+  const notesRef = useRef<EditorNote[]>([]);
+
+  useEffect(() => {
+    notesRef.current = notes;
+  }, [notes]);
 
   const tonicPc = useMemo(() => {
     const match = NOTE_NAME_OPTIONS.find((option) => option.label === tonicName);
@@ -185,28 +190,26 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
     return octaves;
   }, [tonicPc]);
 
-  const ensureMeasureCount = (step: number) => {
-    if (step >= totalSteps) {
-      setMeasures((prev) => prev + 1);
-    }
-  };
-
-  const trimLastMeasureIfEmpty = (step: number) => {
-    if (measures <= 1) return;
-    const lastMeasureStart = (measures - 1) * STEPS_PER_BAR;
-    if (step < lastMeasureStart) {
-      const hasNotesInLast = notes.some((note) => note.startStep + note.length > lastMeasureStart);
-      if (!hasNotesInLast) {
-        setMeasures((prev) => prev - 1);
-      }
-    }
-  };
-
   const moveCursor = (delta: number) => {
     setCursorStep((prev) => {
       const next = Math.max(0, prev + delta);
-      ensureMeasureCount(next);
-      trimLastMeasureIfEmpty(next);
+      setMeasures((prevMeasures) => {
+        let nextMeasures = prevMeasures;
+        if (next >= prevMeasures * STEPS_PER_BAR) {
+          nextMeasures = prevMeasures + 1;
+        } else if (prevMeasures > 1) {
+          const lastMeasureStart = (prevMeasures - 1) * STEPS_PER_BAR;
+          if (next < lastMeasureStart) {
+            const hasNotesInLast = notesRef.current.some(
+              (note) => note.startStep + note.length > lastMeasureStart,
+            );
+            if (!hasNotesInLast) {
+              nextMeasures = prevMeasures - 1;
+            }
+          }
+        }
+        return nextMeasures;
+      });
       return next;
     });
   };
@@ -275,7 +278,7 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
     }
 
     const key = event.key.toLowerCase();
-    if (!NOTE_KEY_MAP[key] || pendingNote) {
+    if (!(key in NOTE_KEY_MAP) || pendingNote) {
       return;
     }
 
@@ -322,6 +325,7 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
         },
       ];
     });
+    moveCursor(pendingNote.length);
     setPendingNote(null);
   };
 
@@ -490,7 +494,7 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-4">
+        <div className="flex flex-wrap gap-y-4">
           {Array.from({ length: measures }, (_, barIndex) => (
             <div key={`bar-${barIndex}`} className="bg-base-200 px-0 py-2" style={{ width: barWidth }}>
               <div className="relative">
