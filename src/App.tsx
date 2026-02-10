@@ -1,12 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { fetchTrackIndex } from './lib/library';
+import { Legend } from './components/Legend';
+import { TrackView } from './components/TrackView';
+import { fetchTrackIndex, fetchTrackJson } from './lib/library';
 import type { TrackIndexEntry } from './lib/library';
+import type { Track } from './lib/model';
 
 function App() {
   const [tracks, setTracks] = useState<TrackIndexEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [openTracks, setOpenTracks] = useState<Track[]>([]);
+  const [loadingTrackIds, setLoadingTrackIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let isMounted = true;
@@ -33,40 +38,70 @@ function App() {
     };
   }, []);
 
-  const listItems = useMemo(() => {
-    if (isLoading) {
-      return (
-        <li>
-          <span className="text-base-content/60">Loading tracks…</span>
-        </li>
-      );
+  const openTrackIds = useMemo(() => new Set(openTracks.map((track) => track.id)), [openTracks]);
+
+  const handleOpenTrack = async (entry: TrackIndexEntry) => {
+    if (openTrackIds.has(entry.id) || loadingTrackIds.has(entry.id)) {
+      return;
     }
 
-    if (error) {
-      return (
-        <li>
-          <span className="text-error">{error}</span>
-        </li>
-      );
+    setLoadingTrackIds((prev) => new Set(prev).add(entry.id));
+    try {
+      const track = (await fetchTrackJson(entry.path)) as Track;
+      setOpenTracks((prev) => [track, ...prev]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load track');
+    } finally {
+      setLoadingTrackIds((prev) => {
+        const next = new Set(prev);
+        next.delete(entry.id);
+        return next;
+      });
     }
+  };
 
-    if (tracks.length === 0) {
-      return (
-        <li>
-          <span className="text-base-content/60">No tracks available.</span>
-        </li>
-      );
-    }
+  const handleCloseTrack = (trackId: string) => {
+    setOpenTracks((prev) => prev.filter((track) => track.id !== trackId));
+  };
 
-    return tracks.map((track) => (
-      <li key={track.id}>
-        <button type="button" className="justify-between">
-          <span>{track.title}</span>
-          <span className="text-xs text-base-content/50">{track.artist}</span>
-        </button>
+  let listItems: React.ReactNode;
+  if (isLoading) {
+    listItems = (
+      <li>
+        <span className="text-base-content/60">Loading tracks…</span>
       </li>
-    ));
-  }, [error, isLoading, tracks]);
+    );
+  } else if (error) {
+    listItems = (
+      <li>
+        <span className="text-error">{error}</span>
+      </li>
+    );
+  } else if (tracks.length === 0) {
+    listItems = (
+      <li>
+        <span className="text-base-content/60">No tracks available.</span>
+      </li>
+    );
+  } else {
+    listItems = tracks.map((track) => {
+      const isOpen = openTrackIds.has(track.id);
+      const isLoadingTrack = loadingTrackIds.has(track.id);
+      return (
+        <li key={track.id}>
+          <button
+            type="button"
+            className="justify-between"
+            onClick={() => handleOpenTrack(track)}
+            disabled={isOpen || isLoadingTrack}
+          >
+            <span>{track.title}</span>
+            <span className="text-xs text-base-content/50">{track.artist}</span>
+          </button>
+        </li>
+      );
+    });
+  }
 
   return (
     <div data-theme="cupcake" className="min-h-screen bg-base-200">
@@ -86,26 +121,34 @@ function App() {
           </div>
 
           <div className="container mx-auto flex flex-col gap-8 px-6 py-8">
-            <div className="card border border-base-300 bg-base-100 shadow-sm">
-              <div className="card-body gap-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-xs uppercase text-base-content/60">Track View</p>
-                    <h1 className="mt-2 text-3xl font-semibold">No track loaded</h1>
-                    <p className="mt-1 text-base text-base-content/60">
-                      This view will populate once external tracks are wired up.
-                    </p>
-                  </div>
-                  <div className="badge badge-outline">Placeholder</div>
-                </div>
+            {openTracks.length > 0 ? <Legend /> : null}
 
-                <div className="rounded-xl border border-dashed border-base-300 bg-base-200 px-6 py-10 text-center">
-                  <p className="text-sm text-base-content/60">
-                    Add your track library and we’ll render it here.
-                  </p>
+            {openTracks.length === 0 ? (
+              <div className="card border border-base-300 bg-base-100 shadow-sm">
+                <div className="card-body gap-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-xs uppercase text-base-content/60">Track View</p>
+                      <h1 className="mt-2 text-3xl font-semibold">No track loaded</h1>
+                      <p className="mt-1 text-base text-base-content/60">
+                        Select a track from the library to begin.
+                      </p>
+                    </div>
+                    <div className="badge badge-outline">Placeholder</div>
+                  </div>
+
+                  <div className="rounded-xl border border-dashed border-base-300 bg-base-200 px-6 py-10 text-center">
+                    <p className="text-sm text-base-content/60">Tracks will render here.</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex flex-col gap-6">
+                {openTracks.map((track) => (
+                  <TrackView key={track.id} track={track} onClose={() => handleCloseTrack(track.id)} />
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
