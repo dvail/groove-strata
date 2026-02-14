@@ -243,11 +243,23 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.code === 'ShiftLeft') {
-      setShiftState((prev) => ({ ...prev, left: true }));
+      event.preventDefault();
+      setShiftState((prev) => {
+        if (prev.left) {
+          return { ...prev, left: false };
+        }
+        return { left: true, right: false };
+      });
       return;
     }
     if (event.code === 'ShiftRight') {
-      setShiftState((prev) => ({ ...prev, right: true }));
+      event.preventDefault();
+      setShiftState((prev) => {
+        if (prev.right) {
+          return { ...prev, right: false };
+        }
+        return { left: false, right: true };
+      });
       return;
     }
 
@@ -336,15 +348,6 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
   };
 
   const handleKeyUp = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.code === 'ShiftLeft') {
-      setShiftState((prev) => ({ ...prev, left: false }));
-      return;
-    }
-    if (event.code === 'ShiftRight') {
-      setShiftState((prev) => ({ ...prev, right: false }));
-      return;
-    }
-
     const key = event.key.toLowerCase();
     if (!pendingNote || pendingNote.key !== key) {
       return;
@@ -783,12 +786,27 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
 
               <div className="flex items-end justify-center gap-4">
                 <div className="flex h-12 w-20">
-                  <div className="relative flex h-12 w-20 items-center justify-center rounded-lg border border-base-300 bg-base-200 text-xs font-semibold uppercase text-base-content/70">
+                  <button
+                    type="button"
+                    className={`relative flex h-12 w-20 items-center justify-center rounded-lg border text-xs font-semibold uppercase transition active:scale-95 ${
+                      shiftState.left
+                        ? 'border-primary bg-primary/15 text-primary shadow-[0_0_0_1px_rgba(87,13,248,0.35)]'
+                        : 'border-base-300 bg-base-200 text-base-content/70'
+                    }`}
+                    onClick={() =>
+                      setShiftState((prev) => {
+                        if (prev.left) {
+                          return { ...prev, left: false };
+                        }
+                        return { left: true, right: false };
+                      })
+                    }
+                  >
                     <span className="text-sm font-semibold">- Octave</span>
                     <span className="absolute bottom-1 left-1 text-[0.6rem] font-semibold uppercase">
                       L Shift
                     </span>
-                  </div>
+                  </button>
                 </div>
 
                 <div className="flex flex-col gap-0">
@@ -864,12 +882,27 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
                 </div>
 
                 <div className="flex h-12 w-20">
-                  <div className="relative flex h-12 w-20 items-center justify-center rounded-lg border border-base-300 bg-base-200 text-xs font-semibold uppercase text-base-content/70">
+                  <button
+                    type="button"
+                    className={`relative flex h-12 w-20 items-center justify-center rounded-lg border text-xs font-semibold uppercase transition active:scale-95 ${
+                      shiftState.right
+                        ? 'border-primary bg-primary/15 text-primary shadow-[0_0_0_1px_rgba(87,13,248,0.35)]'
+                        : 'border-base-300 bg-base-200 text-base-content/70'
+                    }`}
+                    onClick={() =>
+                      setShiftState((prev) => {
+                        if (prev.right) {
+                          return { ...prev, right: false };
+                        }
+                        return { left: false, right: true };
+                      })
+                    }
+                  >
                     <span className="text-sm font-semibold">+ Octave</span>
                     <span className="absolute bottom-1 left-1 text-[0.6rem] font-semibold uppercase">
                       R Shift
                     </span>
-                  </div>
+                  </button>
                 </div>
               </div>
             </div>
