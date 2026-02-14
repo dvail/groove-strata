@@ -560,7 +560,16 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
               />
             </div>
           </div>
-          <span className="text-xs uppercase text-base-content/50">Edit Mode</span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs uppercase text-base-content/50">Edit Mode</span>
+            <button
+              type="button"
+              className="btn btn-ghost btn-xs"
+              onClick={() => setIsOverlayOpen((prev) => !prev)}
+            >
+              {isOverlayOpen ? 'Hide Controls' : 'Show Controls'}
+            </button>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-start justify-between gap-6">
@@ -738,14 +747,6 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
         <div className="text-xs text-base-content/50">Use the Controls toggle for keyboard shortcuts.</div>
       </div>
 
-      <button
-        type="button"
-        className="btn btn-primary btn-sm fixed bottom-6 right-6 z-40 shadow-lg"
-        onClick={() => setIsOverlayOpen((prev) => !prev)}
-      >
-        {isOverlayOpen ? 'Hide Controls' : 'Show Controls'}
-      </button>
-
       {isOverlayOpen ? (
         <div className="fixed bottom-6 left-1/2 z-30 w-[min(56rem,92vw)] -translate-x-1/2">
           <div className="card border border-base-300 bg-base-100/95 shadow-xl backdrop-blur">
@@ -765,8 +766,8 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
               </div>
 
               <div className="flex items-end justify-center gap-4">
-                <div className="flex h-12 w-16">
-                  <div className="relative flex h-12 w-16 items-center justify-center rounded-lg border border-base-300 bg-base-200 text-xs font-semibold uppercase text-base-content/70">
+                <div className="flex h-12 w-20">
+                  <div className="relative flex h-12 w-20 items-center justify-center rounded-lg border border-base-300 bg-base-200 text-xs font-semibold uppercase text-base-content/70">
                     <span className="text-sm font-semibold">- Octave</span>
                     <span className="absolute bottom-1 left-1 text-[0.6rem] font-semibold uppercase">
                       L Shift
@@ -830,8 +831,8 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
                   </div>
                 </div>
 
-                <div className="flex h-12 w-16">
-                  <div className="relative flex h-12 w-16 items-center justify-center rounded-lg border border-base-300 bg-base-200 text-xs font-semibold uppercase text-base-content/70">
+                <div className="flex h-12 w-20">
+                  <div className="relative flex h-12 w-20 items-center justify-center rounded-lg border border-base-300 bg-base-200 text-xs font-semibold uppercase text-base-content/70">
                     <span className="text-sm font-semibold">+ Octave</span>
                     <span className="absolute bottom-1 left-1 text-[0.6rem] font-semibold uppercase">
                       R Shift
