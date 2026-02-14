@@ -7,7 +7,7 @@ export const createEmptyTrack = (): Track => ({
   timeSignature: { beatsPerBar: 4, beatUnit: 4 },
   ticksPerBeat: 240,
   tonic: 0,
-  tonicMidi: 24,
+  tonicMidi: 36,
   length: { bars: 1 },
   sections: [
     {
