@@ -56,6 +56,36 @@ type TrackEditorProps = {
 };
 
 const PITCH_CLASS_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const;
+const KEY_COLORS = [
+  '#f4d35e',
+  '#b7e26b',
+  '#5ec962',
+  '#3db7b7',
+  '#2d8cff',
+  '#4b4bf0',
+  '#7a3df0',
+  '#b73df0',
+  '#e63ba4',
+  '#f03b4f',
+  '#f07c3b',
+  '#f29f3f',
+];
+const KEY_LAYOUT = [
+  { key: 'z', pc: NOTE_KEY_MAP.z, col: 1, sharp: false },
+  { key: 's', pc: NOTE_KEY_MAP.s, col: 2, sharp: true },
+  { key: 'x', pc: NOTE_KEY_MAP.x, col: 3, sharp: false },
+  { key: 'd', pc: NOTE_KEY_MAP.d, col: 4, sharp: true },
+  { key: 'c', pc: NOTE_KEY_MAP.c, col: 5, sharp: false },
+  { key: 'v', pc: NOTE_KEY_MAP.v, col: 7, sharp: false },
+  { key: 'g', pc: NOTE_KEY_MAP.g, col: 8, sharp: true },
+  { key: 'b', pc: NOTE_KEY_MAP.b, col: 9, sharp: false },
+  { key: 'h', pc: NOTE_KEY_MAP.h, col: 10, sharp: true },
+  { key: 'n', pc: NOTE_KEY_MAP.n, col: 11, sharp: false },
+  { key: 'j', pc: NOTE_KEY_MAP.j, col: 12, sharp: true },
+  { key: 'm', pc: NOTE_KEY_MAP.m, col: 13, sharp: false },
+];
+const NATURAL_ROW = ['z', 'x', 'c', 'v', 'b', 'n', 'm'] as const;
+const SHARP_ROW: Array<(typeof NATURAL_ROW)[number] | null> = ['s', 'd', null, 'g', 'h', 'j'];
 
 const getInitialTonicName = (track: Track) => {
   const match = NOTE_NAME_OPTIONS.find((option) => option.pc === track.tonic);
@@ -80,6 +110,7 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
   const [notes, setNotes] = useState<EditorNote[]>([]);
   const [pendingNote, setPendingNote] = useState<PendingNote | null>(null);
   const [shiftState, setShiftState] = useState({ left: false, right: false });
+  const [isOverlayOpen, setIsOverlayOpen] = useState(true);
   const notesRef = useRef<EditorNote[]>([]);
 
   useEffect(() => {
@@ -111,6 +142,22 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
     }
     return octaves;
   }, [tonicPc]);
+
+  const overlayKeys = useMemo(
+    () =>
+      KEY_LAYOUT.map((item) => {
+        const midi = computeNoteMidi(item.pc, tonicMidi, shiftState);
+        const octave = midi !== null ? Math.floor(midi / 12) - 1 : null;
+        return {
+          ...item,
+          midi,
+          label: `${PITCH_CLASS_NAMES[item.pc] ?? '—'}${octave ?? '—'}`,
+          color: KEY_COLORS[item.pc] ?? '#f4d35e',
+        };
+      }),
+    [shiftState, tonicMidi],
+  );
+  const overlayKeyMap = useMemo(() => new Map(overlayKeys.map((item) => [item.key, item])), [overlayKeys]);
 
   const setCursorTo = (nextStep: number) => {
     setCursorStep(() => {
@@ -681,11 +728,114 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
             </div>
           ))}
         </div>
-
-        <div className="text-xs text-base-content/50">
-          Keyboard: Z X C V B N M (naturals), S D G H J (sharps). Hold left/right shift for octave.
-        </div>
+        <div className="text-xs text-base-content/50">Use the Controls toggle for keyboard shortcuts.</div>
       </div>
+
+      <button
+        type="button"
+        className="btn btn-primary btn-sm fixed bottom-6 right-6 z-40 shadow-lg"
+        onClick={() => setIsOverlayOpen((prev) => !prev)}
+      >
+        {isOverlayOpen ? 'Hide Controls' : 'Show Controls'}
+      </button>
+
+      {isOverlayOpen ? (
+        <div className="fixed bottom-6 left-1/2 z-30 w-[min(56rem,92vw)] -translate-x-1/2">
+          <div className="card border border-base-300 bg-base-100/95 shadow-xl backdrop-blur">
+            <div className="card-body gap-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs uppercase text-base-content/60">Controls</p>
+                  <h3 className="text-lg font-semibold">Note Input</h3>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-xs"
+                  onClick={() => setIsOverlayOpen(false)}
+                >
+                  Close
+                </button>
+              </div>
+
+              <div className="flex items-end justify-center gap-4">
+                <div className="flex h-12 w-16">
+                  <div className="relative flex h-12 w-16 items-center justify-center rounded-lg border border-base-300 bg-base-200 text-xs font-semibold uppercase text-base-content/70">
+                    <span className="text-sm font-semibold">- Octave</span>
+                    <span className="absolute bottom-1 left-1 text-[0.6rem] font-semibold uppercase">
+                      L Shift
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-0">
+                  <div className="flex gap-0 pl-6">
+                  {SHARP_ROW.map((keyName, index) => {
+                    if (!keyName) {
+                      return <div key={`sharp-spacer-${index}`} className="h-12 w-12" />;
+                    }
+                    const item = overlayKeyMap.get(keyName);
+                    if (!item) return null;
+                    return (
+                      <div key={`key-${item.key}`} className="h-12 w-12">
+                        <div
+                          className="relative flex h-12 w-12 items-center justify-center rounded-t-lg border text-xs font-semibold uppercase"
+                          style={{
+                            borderColor: item.color,
+                            backgroundColor: `${item.color}22`,
+                            color: item.color,
+                            boxShadow: `0 0 0 1px ${item.color}44 inset`,
+                            opacity: item.midi === null ? 0.35 : 1,
+                          }}
+                        >
+                          <span className="text-sm font-semibold">{item.label}</span>
+                          <span className="absolute bottom-1 left-1 text-[0.6rem] font-semibold uppercase">
+                            {item.key}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  </div>
+                  <div className="flex gap-0">
+                  {NATURAL_ROW.map((keyName) => {
+                    const item = overlayKeyMap.get(keyName);
+                    if (!item) return null;
+                    return (
+                      <div key={`key-${item.key}`} className="h-12 w-12">
+                        <div
+                          className="relative flex h-12 w-12 items-center justify-center rounded-b-lg border text-xs font-semibold uppercase"
+                          style={{
+                            borderColor: item.color,
+                            backgroundColor: `${item.color}22`,
+                            color: item.color,
+                            boxShadow: `0 0 0 1px ${item.color}44 inset`,
+                            opacity: item.midi === null ? 0.35 : 1,
+                          }}
+                        >
+                          <span className="text-sm font-semibold">{item.label}</span>
+                          <span className="absolute bottom-1 left-1 text-[0.6rem] font-semibold uppercase">
+                            {item.key}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  </div>
+                </div>
+
+                <div className="flex h-12 w-16">
+                  <div className="relative flex h-12 w-16 items-center justify-center rounded-lg border border-base-300 bg-base-200 text-xs font-semibold uppercase text-base-content/70">
+                    <span className="text-sm font-semibold">+ Octave</span>
+                    <span className="absolute bottom-1 left-1 text-[0.6rem] font-semibold uppercase">
+                      R Shift
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
