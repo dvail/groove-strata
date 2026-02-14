@@ -85,7 +85,14 @@ const KEY_LAYOUT = [
   { key: 'm', pc: NOTE_KEY_MAP.m, col: 13, sharp: false },
 ];
 const NATURAL_ROW = ['z', 'x', 'c', 'v', 'b', 'n', 'm'] as const;
-const SHARP_ROW: Array<(typeof NATURAL_ROW)[number] | null> = ['s', 'd', null, 'g', 'h', 'j'];
+const SHARP_ROW: Array<(typeof NATURAL_ROW)[number] | 's' | 'd' | 'g' | 'h' | 'j' | null> = [
+  's',
+  'd',
+  null,
+  'g',
+  'h',
+  'j',
+];
 
 const getInitialTonicName = (track: Track) => {
   const match = NOTE_NAME_OPTIONS.find((option) => option.pc === track.tonic);
