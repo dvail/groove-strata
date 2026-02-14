@@ -351,57 +351,117 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
 
       if (row === 'middle') {
         if (note && note.startStep === step) {
-          const interval = getIntervalIndex(note.midi, tonicPc);
-          const length = Math.min(note.length, STEPS_PER_BAR - offset);
-          cells.push(
-            <div
-              key={`note-${step}`}
-              className="h-full w-full rounded-full"
-              style={{
-                gridColumnEnd: `span ${length}`,
-                backgroundColor: intervalColor(interval),
-                border: `1px solid ${intervalBorderColor(interval)}`,
-              }}
-            />,
-          );
-          offset += length - 1;
-          continue;
+          const isOctaveShift = note.midi >= tonicMidi + 12 || note.midi < tonicMidi;
+          if (!isOctaveShift) {
+            const interval = getIntervalIndex(note.midi, tonicPc);
+            const length = Math.min(note.length, STEPS_PER_BAR - offset);
+            cells.push(
+              <div
+                key={`note-${step}`}
+                className="h-full w-full rounded-full"
+                style={{
+                  gridColumnEnd: `span ${length}`,
+                  backgroundColor: intervalColor(interval),
+                  border: `1px solid ${intervalBorderColor(interval)}`,
+                }}
+              />,
+            );
+            offset += length - 1;
+            continue;
+          }
         }
 
         if (pendingRange && pendingNote && pendingNote.startStep === step) {
-          const interval = getIntervalIndex(pendingNote.midi, tonicPc);
-          const length = Math.min(pendingNote.length, STEPS_PER_BAR - offset);
-          cells.push(
-            <div
-              key={`pending-${step}`}
-              className="h-full w-full rounded-full opacity-40"
-              style={{
-                gridColumnEnd: `span ${length}`,
-                backgroundColor: intervalColor(interval),
-                border: `1px dashed ${intervalBorderColor(interval)}`,
-              }}
-            />,
-          );
-          offset += length - 1;
-          continue;
+          const isOctaveShift = pendingNote.midi >= tonicMidi + 12 || pendingNote.midi < tonicMidi;
+          if (!isOctaveShift) {
+            const interval = getIntervalIndex(pendingNote.midi, tonicPc);
+            const length = Math.min(pendingNote.length, STEPS_PER_BAR - offset);
+            cells.push(
+              <div
+                key={`pending-${step}`}
+                className="h-full w-full rounded-full opacity-40"
+                style={{
+                  gridColumnEnd: `span ${length}`,
+                  backgroundColor: intervalColor(interval),
+                  border: `1px dashed ${intervalBorderColor(interval)}`,
+                }}
+              />,
+            );
+            offset += length - 1;
+            continue;
+          }
         }
       }
 
       if (row === 'top' && note && note.startStep === step && note.midi >= tonicMidi + 12) {
+        const interval = getIntervalIndex(note.midi, tonicPc);
+        const length = Math.min(note.length, STEPS_PER_BAR - offset);
         cells.push(
-          <div key={`oct-up-${step}`} className="text-center font-bold text-base-content/70">
-            ^
-          </div>,
+          <div
+            key={`oct-up-${step}`}
+            className="h-full w-full rounded-full"
+            style={{
+              gridColumnEnd: `span ${length}`,
+              backgroundColor: intervalColor(interval),
+              border: `1px solid ${intervalBorderColor(interval)}`,
+            }}
+          />,
         );
+        offset += length - 1;
         continue;
       }
 
       if (row === 'bottom' && note && note.startStep === step && note.midi < tonicMidi) {
+        const interval = getIntervalIndex(note.midi, tonicPc);
+        const length = Math.min(note.length, STEPS_PER_BAR - offset);
         cells.push(
-          <div key={`oct-down-${step}`} className="text-center font-bold text-base-content/70">
-            v
-          </div>,
+          <div
+            key={`oct-down-${step}`}
+            className="h-full w-full rounded-full"
+            style={{
+              gridColumnEnd: `span ${length}`,
+              backgroundColor: intervalColor(interval),
+              border: `1px solid ${intervalBorderColor(interval)}`,
+            }}
+          />,
         );
+        offset += length - 1;
+        continue;
+      }
+
+      if (row === 'top' && pendingNote && pendingNote.startStep === step && pendingNote.midi >= tonicMidi + 12) {
+        const interval = getIntervalIndex(pendingNote.midi, tonicPc);
+        const length = Math.min(pendingNote.length, STEPS_PER_BAR - offset);
+        cells.push(
+          <div
+            key={`pending-oct-up-${step}`}
+            className="h-full w-full rounded-full opacity-40"
+            style={{
+              gridColumnEnd: `span ${length}`,
+              backgroundColor: intervalColor(interval),
+              border: `1px dashed ${intervalBorderColor(interval)}`,
+            }}
+          />,
+        );
+        offset += length - 1;
+        continue;
+      }
+
+      if (row === 'bottom' && pendingNote && pendingNote.startStep === step && pendingNote.midi < tonicMidi) {
+        const interval = getIntervalIndex(pendingNote.midi, tonicPc);
+        const length = Math.min(pendingNote.length, STEPS_PER_BAR - offset);
+        cells.push(
+          <div
+            key={`pending-oct-down-${step}`}
+            className="h-full w-full rounded-full opacity-40"
+            style={{
+              gridColumnEnd: `span ${length}`,
+              backgroundColor: intervalColor(interval),
+              border: `1px dashed ${intervalBorderColor(interval)}`,
+            }}
+          />,
+        );
+        offset += length - 1;
         continue;
       }
 

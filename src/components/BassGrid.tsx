@@ -70,7 +70,7 @@ const buildRowCells = (
     const globalStep = startStep + stepOffset;
     if (variant === 'middle') {
       const span = spansByStart.get(globalStep);
-      if (span) {
+      if (span && span.octaveShift === 0) {
         const maxLength = Math.min(span.length, stepsPerBar - stepOffset);
         elements.push(
           <div
@@ -94,12 +94,22 @@ const buildRowCells = (
     if (variant === 'top') {
       const span = spansByStart.get(globalStep);
       if (span && span.octaveShift > 0) {
+        const maxLength = Math.min(span.length, stepsPerBar - stepOffset);
         elements.push(
-          <div key={`marker-${globalStep}`} className="text-center font-bold text-base-content/70">
-            ^
-          </div>,
+          <div
+            key={`marker-${globalStep}`}
+            className="h-full w-full rounded-full"
+            style={{
+              gridColumnEnd: `span ${maxLength}`,
+              backgroundColor: intervalColor(span.interval),
+              border: `1px solid ${intervalBorderColor(span.interval)}`,
+            }}
+            data-midi={span.midi}
+            data-interval={span.interval}
+            title={`MIDI ${span.midi}`}
+          />,
         );
-        stepOffset += 1;
+        stepOffset += maxLength;
         continue;
       }
     }
@@ -107,12 +117,22 @@ const buildRowCells = (
     if (variant === 'bottom') {
       const span = spansByStart.get(globalStep);
       if (span && span.octaveShift < 0) {
+        const maxLength = Math.min(span.length, stepsPerBar - stepOffset);
         elements.push(
-          <div key={`marker-${globalStep}`} className="text-center font-bold text-base-content/70">
-            v
-          </div>,
+          <div
+            key={`marker-${globalStep}`}
+            className="h-full w-full rounded-full"
+            style={{
+              gridColumnEnd: `span ${maxLength}`,
+              backgroundColor: intervalColor(span.interval),
+              border: `1px solid ${intervalBorderColor(span.interval)}`,
+            }}
+            data-midi={span.midi}
+            data-interval={span.interval}
+            title={`MIDI ${span.midi}`}
+          />,
         );
-        stepOffset += 1;
+        stepOffset += maxLength;
         continue;
       }
     }
