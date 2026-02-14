@@ -225,6 +225,22 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
     }
   };
 
+  const commitNoteAtCursor = (midi: number, length = 1) => {
+    setNotes((prev) => {
+      const trimmed = removeOverlappingNotes(prev, cursorStep, length);
+      return [
+        ...trimmed,
+        {
+          id: `note-${crypto.randomUUID()}`,
+          startStep: cursorStep,
+          length,
+          midi,
+        },
+      ];
+    });
+    setCursorTo(cursorStep + length);
+  };
+
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.code === 'ShiftLeft') {
       setShiftState((prev) => ({ ...prev, left: true }));
@@ -784,51 +800,67 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
                     const item = overlayKeyMap.get(keyName);
                     if (!item) return null;
                     return (
-                      <div key={`key-${item.key}`} className="h-12 w-12">
-                        <div
-                          className="relative flex h-12 w-12 items-center justify-center rounded-t-lg border text-xs font-semibold uppercase"
-                          style={{
-                            borderColor: item.color,
-                            backgroundColor: `${item.color}22`,
-                            color: item.color,
-                            boxShadow: `0 0 0 1px ${item.color}44 inset`,
-                            opacity: item.midi === null ? 0.35 : 1,
-                          }}
-                        >
-                          <span className="text-sm font-semibold">{item.label}</span>
-                          <span className="absolute bottom-1 left-1 text-[0.6rem] font-semibold uppercase">
-                            {item.key}
-                          </span>
-                        </div>
-                      </div>
+                      <button
+                        key={`key-${item.key}`}
+                        type="button"
+                        className="relative h-12 w-12 rounded-t-lg border text-xs font-semibold uppercase transition active:scale-95"
+                        style={{
+                          borderColor: item.color,
+                          backgroundColor: `${item.color}22`,
+                          color: item.color,
+                          boxShadow: `0 0 0 1px ${item.color}44 inset`,
+                          opacity: item.midi === null ? 0.35 : 1,
+                        }}
+                        onClick={() => {
+                          if (item.midi === null) return;
+                          commitNoteAtCursor(item.midi, 1);
+                          containerRef.current?.focus();
+                        }}
+                        disabled={item.midi === null}
+                      >
+                        <span className="absolute inset-0 flex items-center justify-center text-sm font-semibold">
+                          {item.label}
+                        </span>
+                        <span className="absolute bottom-1 left-1 text-[0.6rem] font-semibold uppercase">
+                          {item.key}
+                        </span>
+                      </button>
                     );
                   })}
-                  </div>
-                  <div className="flex gap-0">
+                </div>
+                <div className="flex gap-0">
                   {NATURAL_ROW.map((keyName) => {
                     const item = overlayKeyMap.get(keyName);
                     if (!item) return null;
                     return (
-                      <div key={`key-${item.key}`} className="h-12 w-12">
-                        <div
-                          className="relative flex h-12 w-12 items-center justify-center rounded-b-lg border text-xs font-semibold uppercase"
-                          style={{
-                            borderColor: item.color,
-                            backgroundColor: `${item.color}22`,
-                            color: item.color,
-                            boxShadow: `0 0 0 1px ${item.color}44 inset`,
-                            opacity: item.midi === null ? 0.35 : 1,
-                          }}
-                        >
-                          <span className="text-sm font-semibold">{item.label}</span>
-                          <span className="absolute bottom-1 left-1 text-[0.6rem] font-semibold uppercase">
-                            {item.key}
-                          </span>
-                        </div>
-                      </div>
+                      <button
+                        key={`key-${item.key}`}
+                        type="button"
+                        className="relative h-12 w-12 rounded-b-lg border text-xs font-semibold uppercase transition active:scale-95"
+                        style={{
+                          borderColor: item.color,
+                          backgroundColor: `${item.color}22`,
+                          color: item.color,
+                          boxShadow: `0 0 0 1px ${item.color}44 inset`,
+                          opacity: item.midi === null ? 0.35 : 1,
+                        }}
+                        onClick={() => {
+                          if (item.midi === null) return;
+                          commitNoteAtCursor(item.midi, 1);
+                          containerRef.current?.focus();
+                        }}
+                        disabled={item.midi === null}
+                      >
+                        <span className="absolute inset-0 flex items-center justify-center text-sm font-semibold">
+                          {item.label}
+                        </span>
+                        <span className="absolute bottom-1 left-1 text-[0.6rem] font-semibold uppercase">
+                          {item.key}
+                        </span>
+                      </button>
                     );
                   })}
-                  </div>
+                </div>
                 </div>
 
                 <div className="flex h-12 w-20">
