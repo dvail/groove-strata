@@ -55,6 +55,7 @@ type TrackEditorProps = {
 
 const PITCH_CLASS_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const;
 const FRET_COUNT = 13;
+const DOT_MARKER_FRETS = new Set([3, 5, 7, 9, 12]);
 const BASS_STRINGS = [
   { name: 'G', openMidi: 43 },
   { name: 'D', openMidi: 38 },
@@ -782,46 +783,64 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
                 </button>
               </div>
 
-              <div className="flex items-start justify-center gap-3 text-xs text-base-content/60">
-                <span>Frets</span>
-                <div className="grid grid-flow-col gap-1">
-                  {Array.from({ length: FRET_COUNT }, (_, fret) => (
-                    <span key={`fret-label-${fret}`} className="w-12 text-center">
-                      {fret}
+              <div className="flex items-start gap-3">
+                <div className="grid grid-rows-4 gap-1">
+                  {BASS_STRINGS.map((stringItem) => (
+                    <span
+                      key={`label-${stringItem.name}`}
+                      className="flex h-9 w-6 items-center justify-center text-sm font-semibold text-base-content/70"
+                    >
+                      {stringItem.name}
                     </span>
                   ))}
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                {BASS_STRINGS.map((stringItem, stringIndex) => (
-                  <div key={`string-${stringItem.name}`} className="flex items-center gap-3">
-                    <span className="w-6 text-center text-sm font-semibold text-base-content/70">
-                      {stringItem.name}
-                    </span>
-                    <div className="grid grid-flow-col gap-1">
-                      {fretboardCells[stringIndex]?.map((cell) => (
-                        <button
-                          key={`${stringItem.name}-${cell.fret}`}
-                          type="button"
-                          className="h-10 w-12 rounded-md border text-center text-[0.65rem] leading-tight transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-35"
-                          style={{
-                            backgroundColor: `${intervalColor(cell.interval)}1f`,
-                            borderColor: intervalBorderColor(cell.interval),
-                            color: '#1f2937',
-                          }}
-                          onClick={(event) => {
-                            handleFretClick(cell.midi, event.shiftKey || isExtendMode);
-                            containerRef.current?.focus();
-                          }}
-                          disabled={cell.midi === null}
-                        >
-                          {cell.label}
-                        </button>
-                      ))}
+                <div className="flex items-start gap-1">
+                  {Array.from({ length: FRET_COUNT }, (_, fret) => (
+                    <div
+                      key={`fret-column-${fret}`}
+                      className={`relative grid grid-rows-4 gap-1 ${fret === 1 ? 'ml-2' : ''}`}
+                    >
+                      {fret === 1 ? (
+                        <span className="pointer-events-none absolute -left-2 top-0 h-full w-[2px] bg-base-content/60" />
+                      ) : null}
+                      {DOT_MARKER_FRETS.has(fret) && fret !== 12 ? (
+                        <span className="pointer-events-none absolute left-1/2 top-1/2 z-10 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-base-content/45" />
+                      ) : null}
+                      {fret === 12 ? (
+                        <>
+                          <span className="pointer-events-none absolute left-1/2 top-[35%] z-10 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-base-content/45" />
+                          <span className="pointer-events-none absolute left-1/2 top-[65%] z-10 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-base-content/45" />
+                        </>
+                      ) : null}
+                      {BASS_STRINGS.map((stringItem, stringIndex) => {
+                        const cell = fretboardCells[stringIndex]?.[fret];
+                        if (!cell) return null;
+                        return (
+                          <button
+                            key={`${stringItem.name}-${cell.fret}`}
+                            type="button"
+                            className="group relative h-9 w-11 overflow-hidden rounded-md border-2 text-center text-[0.65rem] leading-tight transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-35"
+                            style={{
+                              backgroundColor: `${intervalColor(cell.interval)}1f`,
+                              borderColor: intervalBorderColor(cell.interval),
+                              color: '#1f2937',
+                            }}
+                            onClick={(event) => {
+                              handleFretClick(cell.midi, event.shiftKey || isExtendMode);
+                              containerRef.current?.focus();
+                            }}
+                            disabled={cell.midi === null}
+                          >
+                            <span className="relative z-20 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                              {cell.label}
+                            </span>
+                          </button>
+                        );
+                      })}
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
 
               <p className="text-xs text-base-content/60">
