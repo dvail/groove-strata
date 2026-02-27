@@ -56,13 +56,29 @@ type TrackEditorProps = {
 const PITCH_CLASS_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const;
 const FRET_COUNT = 13;
 const DOT_MARKER_FRETS = new Set([3, 5, 7, 9, 12]);
-const BASS_STRINGS = [
-  { name: 'G', openMidi: 43 },
-  { name: 'D', openMidi: 38 },
-  { name: 'A', openMidi: 33 },
-  { name: 'E', openMidi: 28 },
-  { name: 'B', openMidi: 23 },
-] as const;
+const STRING_LAYOUTS = {
+  4: [
+    { name: 'G', openMidi: 43 },
+    { name: 'D', openMidi: 38 },
+    { name: 'A', openMidi: 33 },
+    { name: 'E', openMidi: 28 },
+  ],
+  5: [
+    { name: 'G', openMidi: 43 },
+    { name: 'D', openMidi: 38 },
+    { name: 'A', openMidi: 33 },
+    { name: 'E', openMidi: 28 },
+    { name: 'B', openMidi: 23 },
+  ],
+  6: [
+    { name: 'C', openMidi: 48 },
+    { name: 'G', openMidi: 43 },
+    { name: 'D', openMidi: 38 },
+    { name: 'A', openMidi: 33 },
+    { name: 'E', openMidi: 28 },
+    { name: 'B', openMidi: 23 },
+  ],
+} as const;
 
 const getInitialTonicName = (track: Track) => {
   const match = NOTE_NAME_OPTIONS.find((option) => option.pc === track.tonic);
@@ -119,6 +135,7 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
   const [pendingNote, setPendingNote] = useState<PendingNote | null>(null);
   const [isExtendMode, setIsExtendMode] = useState(false);
   const [isOverlayOpen, setIsOverlayOpen] = useState(true);
+  const [stringCount, setStringCount] = useState<4 | 5 | 6>(4);
   const notesRef = useRef<EditorNote[]>([]);
 
   useEffect(() => {
@@ -150,9 +167,11 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
     }
     return octaves;
   }, [tonicPc]);
+  const activeStrings = useMemo(() => STRING_LAYOUTS[stringCount], [stringCount]);
+
   const fretboardCells = useMemo(
     () =>
-      BASS_STRINGS.map((stringItem) =>
+      activeStrings.map((stringItem) =>
         Array.from({ length: FRET_COUNT }, (_, fret) => {
           const midi = stringItem.openMidi + fret;
           const clampedMidi = clampMidi(midi);
@@ -167,7 +186,7 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
           };
         }),
       ),
-    [tonicPc],
+    [activeStrings, tonicPc],
   );
 
   const setCursorTo = (nextStep: number) => {
@@ -775,21 +794,36 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
                   <p className="text-xs uppercase text-base-content/60">Controls</p>
                   <h3 className="text-lg font-semibold">Fretboard Input</h3>
                 </div>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-xs"
-                  onClick={() => setIsOverlayOpen(false)}
-                >
-                  Close
-                </button>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs uppercase text-base-content/60" htmlFor="string-count-select">
+                    Strings
+                  </label>
+                  <select
+                    id="string-count-select"
+                    className="select select-bordered select-xs"
+                    value={stringCount}
+                    onChange={(event) => setStringCount(Number(event.target.value) as 4 | 5 | 6)}
+                  >
+                    <option value={4}>4</option>
+                    <option value={5}>5</option>
+                    <option value={6}>6</option>
+                  </select>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-xs"
+                    onClick={() => setIsOverlayOpen(false)}
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
 
               <div className="flex items-start gap-3">
                 <div
                   className="grid gap-1"
-                  style={{ gridTemplateRows: `repeat(${BASS_STRINGS.length}, minmax(0, 1fr))` }}
+                  style={{ gridTemplateRows: `repeat(${activeStrings.length}, minmax(0, 1fr))` }}
                 >
-                  {BASS_STRINGS.map((stringItem) => (
+                  {activeStrings.map((stringItem) => (
                     <span
                       key={`label-${stringItem.name}`}
                       className="flex h-8 w-6 items-center justify-center text-sm font-semibold text-base-content/70"
@@ -804,7 +838,7 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
                     <div
                       key={`fret-column-${fret}`}
                       className={`relative grid gap-1 ${fret === 1 ? 'ml-2' : ''}`}
-                      style={{ gridTemplateRows: `repeat(${BASS_STRINGS.length}, minmax(0, 1fr))` }}
+                      style={{ gridTemplateRows: `repeat(${activeStrings.length}, minmax(0, 1fr))` }}
                     >
                       {fret === 1 ? (
                         <span className="pointer-events-none absolute -left-2 top-0 h-full w-[2px] bg-base-content/60" />
@@ -818,7 +852,7 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
                           <span className="pointer-events-none absolute left-1/2 top-[71%] z-10 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-base-content/25" />
                         </>
                       ) : null}
-                      {BASS_STRINGS.map((stringItem, stringIndex) => {
+                      {activeStrings.map((stringItem, stringIndex) => {
                         const cell = fretboardCells[stringIndex]?.[fret];
                         if (!cell) return null;
                         return (
