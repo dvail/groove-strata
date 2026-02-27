@@ -1,73 +1,142 @@
-# React + TypeScript + Vite
+# Groove Strata
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Groove Strata is a bass-line visualization and editing app focused on tonal context.
+It renders bass notes on a 16th-note grid, colors notes by interval from tonic, loads tracks from an external library repository, and supports keyboard-driven track authoring/export.
 
-Currently, two official plugins are available:
+## What It Does
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Loads a remote track index (`index.json`) and track JSON files from a configurable library URL
+- Displays one or more tracks at once in stacked viewers
+- Colors notes by interval class relative to track tonic
+- Shows octave markers (`^` above, `v` below) relative to `tonicMidi`
+- Provides a collapsible global interval legend
+- Supports keyboard-driven track editing in a dedicated editor view
+- Exports authored tracks as JSON files ready for the library repo
 
-## React Compiler
+## Current Feature Set
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Viewer
 
-## Expanding the ESLint configuration
+- Collapsible left sidebar with track list
+- URL input in sidebar to switch library source at runtime
+- Open tracks from sidebar; newest opens at top
+- Prevent duplicate opens for the same track id
+- Close individual track views
+- Track header metadata: title, artist, tonic, tempo, bars
+- Bass lane rendering:
+  - 4/4 default visual with 16 cells per measure
+  - Separate measure/beat overlay layer
+  - Top/middle/bottom rows
+  - Note width based on duration
+  - Interval fill + border color system
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Legend
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- Global collapsible legend (shown when at least one track is open)
+- Interval swatches + short labels
+- Includes octave entry with root color
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### Editor
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
-```
+- Floating action button opens one editable draft track view
+- Editable header fields (click-to-edit):
+  - title
+  - artist
+  - tonic (note + octave dropdown)
+  - tempo
+- Grid editor defaults to 1 measure, expands/shrinks with cursor movement
+- Keyboard note entry:
+  - `Z X C V B N M` for naturals
+  - `S D G H J` for sharps
+  - `ShiftLeft` for octave down, `ShiftRight` for octave up
+- Notes are committed on key release
+- Hold note key + `ArrowRight` to extend note length by 16th increments
+- Cursor movement:
+  - `ArrowLeft` / `ArrowRight`
+  - cursor advances to the end of inserted note
+- Editing commands:
+  - `Space`: delete note under cursor and advance one step
+  - `Delete` / `Backspace`: delete note under cursor without advancing
+  - `ArrowUp` / `ArrowDown`: nudge note under cursor by semitone
+- Overlap behavior:
+  - replacing/deleting affects intersecting note spans
+- Export:
+  - green header dot exports JSON
+  - filename/id pattern: `artist-slug--title-slug.json`
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Track Library Format
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x';
-import reactDom from 'eslint-plugin-react-dom';
+Groove Strata expects an external library root URL with:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
-```
+- `index.json` at the top level
+- track files referenced by `index.json` `path` fields
+
+`index.json` entries currently use:
+
+- `id`
+- `title`
+- `artist`
+- `tonic`
+- `tonicMidi`
+- `mode`
+- `tempoBpm`
+- `lengthBars`
+- `path`
+
+Default library URL:
+
+- `https://raw.githubusercontent.com/dvail/groove-strata-library/main`
+
+Override via env:
+
+- `VITE_LIBRARY_BASE_URL`
+
+## Development
+
+### Requirements
+
+- Node.js 20+
+- npm
+
+### Scripts
+
+- `npm run dev` starts Vite dev server on port `4444`
+- `npm run build` type checks + production build
+- `npm run lint` runs ESLint
+- `npm test` runs Vitest
+- `npm run check` runs lint + build
+
+## Tests
+
+Current automated coverage includes:
+
+- data model validation basics
+- bass event expansion determinism
+- editor utility logic:
+  - slug generation
+  - key map integrity
+  - midi clamp and pitch conversion
+  - overlap removal
+  - step-to-event conversion
+
+See:
+
+- `tests/track.test.ts`
+- `tests/editor-utils.test.ts`
+
+## GitHub Pages
+
+Deployment is configured via GitHub Actions.
+
+- Workflow: `.github/workflows/deploy-pages.yml`
+- Vite base path: `/groove-strata/`
+
+## Codespaces
+
+Dev container is configured for browser-based development (including iPad).
+
+- Config: `.devcontainer/devcontainer.json`
+- Post-create installs:
+  - project dependencies (`npm ci`)
+  - Codex CLI globally (`npm i -g @openai/codex`)
+- Port 4444 is forwarded for Vite.
