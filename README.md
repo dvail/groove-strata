@@ -1,7 +1,7 @@
 # Groove Strata
 
 Groove Strata is a bass-line visualization and editing app focused on tonal context.
-It renders bass notes on a 16th-note grid, colors notes by interval from tonic, loads tracks from an external library repository, and supports keyboard-driven track authoring/export.
+It renders bass notes on a 16th-note grid, colors notes by interval from tonic, loads tracks from an external library repository, and supports in-app track authoring/export.
 
 ## What It Does
 
@@ -10,7 +10,7 @@ It renders bass notes on a 16th-note grid, colors notes by interval from tonic, 
 - Colors notes by interval class relative to track tonic
 - Shows octave markers (`^` above, `v` below) relative to `tonicMidi`
 - Provides a collapsible global interval legend
-- Supports keyboard-driven track editing in a dedicated editor view
+- Supports fretboard-based track editing in a dedicated editor view
 - Exports authored tracks as JSON files ready for the library repo
 
 ## Current Feature Set
@@ -22,6 +22,7 @@ It renders bass notes on a 16th-note grid, colors notes by interval from tonic, 
 - Open tracks from sidebar; newest opens at top
 - Prevent duplicate opens for the same track id
 - Close individual track views
+- Edit opened tracks via the green header dot
 - Track header metadata: title, artist, tonic, tempo, bars
 - Bass lane rendering:
   - 4/4 default visual with 16 cells per measure
@@ -38,19 +39,22 @@ It renders bass notes on a 16th-note grid, colors notes by interval from tonic, 
 
 ### Editor
 
-- Floating action button opens one editable draft track view
+- Floating action button opens one editable draft track view (single editor at a time)
 - Editable header fields (click-to-edit):
   - title
   - artist
   - tonic (note + octave dropdown)
   - tempo
-- Grid editor defaults to 1 measure, expands/shrinks with cursor movement
-- Keyboard note entry:
-  - `Z X C V B N M` for naturals
-  - `S D G H J` for sharps
-  - `ShiftLeft` for octave down, `ShiftRight` for octave up
-- Notes are committed on key release
-- Hold note key + `ArrowRight` to extend note length by 16th increments
+- Grid editor initializes from track content and expands/shrinks with cursor movement
+- Fretboard note entry:
+  - Click/tap fret buttons (open to 12th fret) to insert notes
+  - String-count selector supports 4, 5, and 6 string layouts (default 4)
+  - Fret markers shown at 3/5/7/9 and double at 12
+  - Hover preview shows interval-based fill/border color
+  - Hold `Shift` while clicking to start an extendable note
+- Pending note extension:
+  - `ArrowRight` extends pending note length by 16th increments
+  - Releasing `Shift` commits the pending note
 - Cursor movement:
   - `ArrowLeft` / `ArrowRight`
   - cursor advances to the end of inserted note
@@ -61,7 +65,7 @@ It renders bass notes on a 16th-note grid, colors notes by interval from tonic, 
 - Overlap behavior:
   - replacing/deleting affects intersecting note spans
 - Export:
-  - green header dot exports JSON
+  - green editor dot exports JSON
   - filename/id pattern: `artist-slug--title-slug.json`
 
 ## Track Library Format
@@ -114,7 +118,6 @@ Current automated coverage includes:
 - bass event expansion determinism
 - editor utility logic:
   - slug generation
-  - key map integrity
   - midi clamp and pitch conversion
   - overlap removal
   - step-to-event conversion
