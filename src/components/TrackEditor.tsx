@@ -61,6 +61,7 @@ const BASS_STRINGS = [
   { name: 'D', openMidi: 38 },
   { name: 'A', openMidi: 33 },
   { name: 'E', openMidi: 28 },
+  { name: 'B', openMidi: 23 },
 ] as const;
 
 const getInitialTonicName = (track: Track) => {
@@ -784,11 +785,14 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="grid grid-rows-4 gap-1">
+                <div
+                  className="grid gap-1"
+                  style={{ gridTemplateRows: `repeat(${BASS_STRINGS.length}, minmax(0, 1fr))` }}
+                >
                   {BASS_STRINGS.map((stringItem) => (
                     <span
                       key={`label-${stringItem.name}`}
-                      className="flex h-9 w-6 items-center justify-center text-sm font-semibold text-base-content/70"
+                      className="flex h-8 w-6 items-center justify-center text-sm font-semibold text-base-content/70"
                     >
                       {stringItem.name}
                     </span>
@@ -799,18 +803,19 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
                   {Array.from({ length: FRET_COUNT }, (_, fret) => (
                     <div
                       key={`fret-column-${fret}`}
-                      className={`relative grid grid-rows-4 gap-1 ${fret === 1 ? 'ml-2' : ''}`}
+                      className={`relative grid gap-1 ${fret === 1 ? 'ml-2' : ''}`}
+                      style={{ gridTemplateRows: `repeat(${BASS_STRINGS.length}, minmax(0, 1fr))` }}
                     >
                       {fret === 1 ? (
                         <span className="pointer-events-none absolute -left-2 top-0 h-full w-[2px] bg-base-content/60" />
                       ) : null}
                       {DOT_MARKER_FRETS.has(fret) && fret !== 12 ? (
-                        <span className="pointer-events-none absolute left-1/2 top-1/2 z-10 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-base-content/45" />
+                        <span className="pointer-events-none absolute left-1/2 top-1/2 z-10 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-base-content/25" />
                       ) : null}
                       {fret === 12 ? (
                         <>
-                          <span className="pointer-events-none absolute left-1/2 top-[35%] z-10 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-base-content/45" />
-                          <span className="pointer-events-none absolute left-1/2 top-[65%] z-10 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-base-content/45" />
+                          <span className="pointer-events-none absolute left-1/2 top-[29%] z-10 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-base-content/25" />
+                          <span className="pointer-events-none absolute left-1/2 top-[71%] z-10 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-base-content/25" />
                         </>
                       ) : null}
                       {BASS_STRINGS.map((stringItem, stringIndex) => {
@@ -820,7 +825,7 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
                           <button
                             key={`${stringItem.name}-${cell.fret}`}
                             type="button"
-                            className="group relative h-9 w-11 overflow-hidden rounded-md border-2 text-center text-[0.65rem] leading-tight transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-35"
+                            className="group relative h-8 w-11 overflow-hidden rounded-md border-2 text-center text-[0.65rem] leading-tight transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-35"
                             style={{
                               backgroundColor: `${intervalColor(cell.interval)}1f`,
                               borderColor: intervalBorderColor(cell.interval),
