@@ -11,21 +11,6 @@ export type EditorNote = {
   midi: number;
 };
 
-export const NOTE_KEY_MAP: Record<string, number> = {
-  z: 0,
-  x: 2,
-  c: 4,
-  v: 5,
-  b: 7,
-  n: 9,
-  m: 11,
-  s: 1,
-  d: 3,
-  g: 6,
-  h: 8,
-  j: 10,
-};
-
 export const toMidi = (pc: number, octave: number) => (octave + 1) * 12 + pc;
 
 export const clampMidi = (midi: number) => (midi < MIN_MIDI || midi > MAX_MIDI ? null : midi);
@@ -62,13 +47,3 @@ export const buildBassEvents = (notes: EditorNote[]): BassEvent[] =>
       duration: { beats: note.length / 4 },
       pitch: { midi: note.midi },
     }));
-
-export const computeNoteMidi = (
-  pc: number,
-  tonicMidi: number,
-  shift: { left: boolean; right: boolean },
-) => {
-  const baseOctave = Math.floor(tonicMidi / 12) - 1;
-  const octaveOffset = shift.right ? 1 : shift.left ? -1 : 0;
-  return clampMidi(toMidi(pc, baseOctave + octaveOffset));
-};

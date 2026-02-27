@@ -6,9 +6,10 @@ import { TrackHeader } from './TrackHeader';
 type TrackViewProps = {
   track: Track;
   onClose?: () => void;
+  onEdit?: () => void;
 };
 
-export function TrackView({ track, onClose }: TrackViewProps) {
+export function TrackView({ track, onClose, onEdit }: TrackViewProps) {
   return (
     <div className="card border border-base-300 bg-base-100 shadow-sm">
       <div className="card-body gap-6">
@@ -24,7 +25,15 @@ export function TrackView({ track, onClose }: TrackViewProps) {
               />
             </div>
             <div className="h-4 w-4 rounded-full border border-base-300 bg-warning/70" />
-            <div className="h-4 w-4 rounded-full border border-base-300 bg-success/70" />
+            <div className="tooltip tooltip-bottom flex items-center" data-tip="Edit track">
+              <button
+                type="button"
+                className="h-4 w-4 cursor-pointer rounded-full border border-base-300 bg-success/70"
+                onClick={onEdit}
+                aria-label={`Edit ${track.title}`}
+                disabled={!onEdit}
+              />
+            </div>
           </div>
         </div>
 

@@ -3,9 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildBassEvents,
   clampMidi,
-  computeNoteMidi,
   findNoteAtStep,
-  NOTE_KEY_MAP,
   removeOverlappingNotes,
   slugify,
   STEPS_PER_BAR,
@@ -25,21 +23,6 @@ describe('editor-utils', () => {
     expect(slugify('@@@')).toBe('untitled');
   });
 
-  it('NOTE_KEY_MAP includes expected keys', () => {
-    expect(NOTE_KEY_MAP.z).toBe(0);
-    expect(NOTE_KEY_MAP.x).toBe(2);
-    expect(NOTE_KEY_MAP.c).toBe(4);
-    expect(NOTE_KEY_MAP.v).toBe(5);
-    expect(NOTE_KEY_MAP.b).toBe(7);
-    expect(NOTE_KEY_MAP.n).toBe(9);
-    expect(NOTE_KEY_MAP.m).toBe(11);
-    expect(NOTE_KEY_MAP.s).toBe(1);
-    expect(NOTE_KEY_MAP.d).toBe(3);
-    expect(NOTE_KEY_MAP.g).toBe(6);
-    expect(NOTE_KEY_MAP.h).toBe(8);
-    expect(NOTE_KEY_MAP.j).toBe(10);
-  });
-
   it('clampMidi enforces B0 to C5 range', () => {
     expect(clampMidi(23)).toBe(23);
     expect(clampMidi(72)).toBe(72);
@@ -51,13 +34,6 @@ describe('editor-utils', () => {
     expect(toMidi(0, 1)).toBe(24);
     expect(toMidi(9, 1)).toBe(33);
     expect(toMidi(0, 4)).toBe(60);
-  });
-
-  it('computeNoteMidi applies shift offsets', () => {
-    const tonicMidi = 33; // A1
-    expect(computeNoteMidi(0, tonicMidi, { left: false, right: false })).toBe(24);
-    expect(computeNoteMidi(0, tonicMidi, { left: true, right: false })).toBeNull();
-    expect(computeNoteMidi(0, tonicMidi, { left: false, right: true })).toBe(36);
   });
 
   it('findNoteAtStep returns the correct note', () => {

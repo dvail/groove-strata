@@ -1,15 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { expandBassEvents } from '../lib/expand';
 import { getIntervalIndex, intervalBorderColor, intervalColor, GRID_STEP_VAR } from '../lib/intervals';
 import type { Track } from '../lib/model';
 import {
   STEPS_PER_BAR,
-  NOTE_KEY_MAP,
   MIN_MIDI,
   MAX_MIDI,
   buildBassEvents,
   clampMidi,
-  computeNoteMidi,
   findNoteAtStep,
   removeOverlappingNotes,
   slugify,
@@ -44,7 +43,6 @@ type EditorNote = {
 };
 
 type PendingNote = {
-  key: string;
   startStep: number;
   length: number;
   midi: number;
@@ -56,43 +54,13 @@ type TrackEditorProps = {
 };
 
 const PITCH_CLASS_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const;
-const KEY_COLORS = [
-  '#f4d35e',
-  '#b7e26b',
-  '#5ec962',
-  '#3db7b7',
-  '#2d8cff',
-  '#4b4bf0',
-  '#7a3df0',
-  '#b73df0',
-  '#e63ba4',
-  '#f03b4f',
-  '#f07c3b',
-  '#f29f3f',
-];
-const KEY_LAYOUT = [
-  { key: 'z', pc: NOTE_KEY_MAP.z, col: 1, sharp: false },
-  { key: 's', pc: NOTE_KEY_MAP.s, col: 2, sharp: true },
-  { key: 'x', pc: NOTE_KEY_MAP.x, col: 3, sharp: false },
-  { key: 'd', pc: NOTE_KEY_MAP.d, col: 4, sharp: true },
-  { key: 'c', pc: NOTE_KEY_MAP.c, col: 5, sharp: false },
-  { key: 'v', pc: NOTE_KEY_MAP.v, col: 7, sharp: false },
-  { key: 'g', pc: NOTE_KEY_MAP.g, col: 8, sharp: true },
-  { key: 'b', pc: NOTE_KEY_MAP.b, col: 9, sharp: false },
-  { key: 'h', pc: NOTE_KEY_MAP.h, col: 10, sharp: true },
-  { key: 'n', pc: NOTE_KEY_MAP.n, col: 11, sharp: false },
-  { key: 'j', pc: NOTE_KEY_MAP.j, col: 12, sharp: true },
-  { key: 'm', pc: NOTE_KEY_MAP.m, col: 13, sharp: false },
-];
-const NATURAL_ROW = ['z', 'x', 'c', 'v', 'b', 'n', 'm'] as const;
-const SHARP_ROW: Array<(typeof NATURAL_ROW)[number] | 's' | 'd' | 'g' | 'h' | 'j' | null> = [
-  's',
-  'd',
-  null,
-  'g',
-  'h',
-  'j',
-];
+const FRET_COUNT = 13;
+const BASS_STRINGS = [
+  { name: 'G', openMidi: 43 },
+  { name: 'D', openMidi: 38 },
+  { name: 'A', openMidi: 33 },
+  { name: 'E', openMidi: 28 },
+] as const;
 
 const getInitialTonicName = (track: Track) => {
   const match = NOTE_NAME_OPTIONS.find((option) => option.pc === track.tonic);
@@ -104,6 +72,37 @@ const getInitialTonicOctave = (track: Track) => {
   return Math.floor(track.tonicMidi / 12) - 1;
 };
 
+const toStepIndex = (track: Track, bar: number, beat: number, tick = 0) => {
+  const beatsPerBar = track.timeSignature.beatsPerBar;
+  const ticksPerBeat = track.ticksPerBeat;
+  const ticksPerStep = ticksPerBeat / 4;
+  const totalTicks = (bar * beatsPerBar + beat) * ticksPerBeat + tick;
+  return Math.floor(totalTicks / ticksPerStep);
+};
+
+const durationToStepLength = (
+  track: Track,
+  duration: { bars?: number; beats?: number; ticks?: number },
+) => {
+  const beatsPerBar = track.timeSignature.beatsPerBar;
+  const ticksPerBeat = track.ticksPerBeat;
+  const ticksPerBar = beatsPerBar * ticksPerBeat;
+  const ticksPerStep = ticksPerBeat / 4;
+  const durationTicks =
+    (duration.bars ?? 0) * ticksPerBar +
+    (duration.beats ?? 0) * ticksPerBeat +
+    (duration.ticks ?? 0);
+  return Math.max(1, Math.round(durationTicks / ticksPerStep));
+};
+
+const getInitialEditorNotes = (track: Track): EditorNote[] =>
+  expandBassEvents(track).map((event) => ({
+    id: event.id,
+    startStep: toStepIndex(track, event.start.bar, event.start.beat, event.start.tick ?? 0),
+    length: durationToStepLength(track, event.duration),
+    midi: event.pitch.midi,
+  }));
+
 export function TrackEditor({ track, onClose }: TrackEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [title, setTitle] = useState(track.title);
@@ -114,9 +113,9 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
   const [tonicOctave, setTonicOctave] = useState(getInitialTonicOctave(track));
   const [measures, setMeasures] = useState(track.length.bars);
   const [cursorStep, setCursorStep] = useState(0);
-  const [notes, setNotes] = useState<EditorNote[]>([]);
+  const [notes, setNotes] = useState<EditorNote[]>(() => getInitialEditorNotes(track));
   const [pendingNote, setPendingNote] = useState<PendingNote | null>(null);
-  const [shiftState, setShiftState] = useState({ left: false, right: false });
+  const [isExtendMode, setIsExtendMode] = useState(false);
   const [isOverlayOpen, setIsOverlayOpen] = useState(true);
   const notesRef = useRef<EditorNote[]>([]);
 
@@ -149,22 +148,25 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
     }
     return octaves;
   }, [tonicPc]);
-
-  const overlayKeys = useMemo(
+  const fretboardCells = useMemo(
     () =>
-      KEY_LAYOUT.map((item) => {
-        const midi = computeNoteMidi(item.pc, tonicMidi, shiftState);
-        const octave = midi !== null ? Math.floor(midi / 12) - 1 : null;
-        return {
-          ...item,
-          midi,
-          label: `${PITCH_CLASS_NAMES[item.pc] ?? '—'}${octave ?? '—'}`,
-          color: KEY_COLORS[item.pc] ?? '#f4d35e',
-        };
-      }),
-    [shiftState, tonicMidi],
+      BASS_STRINGS.map((stringItem) =>
+        Array.from({ length: FRET_COUNT }, (_, fret) => {
+          const midi = stringItem.openMidi + fret;
+          const clampedMidi = clampMidi(midi);
+          const interval = getIntervalIndex(midi, tonicPc);
+          const pitchClass = PITCH_CLASS_NAMES[midi % 12] ?? '—';
+          const octave = Math.floor(midi / 12) - 1;
+          return {
+            fret,
+            midi: clampedMidi,
+            label: `${pitchClass}${octave}`,
+            interval,
+          };
+        }),
+      ),
+    [tonicPc],
   );
-  const overlayKeyMap = useMemo(() => new Map(overlayKeys.map((item) => [item.key, item])), [overlayKeys]);
 
   const setCursorTo = (nextStep: number) => {
     setCursorStep(() => {
@@ -225,41 +227,65 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
     }
   };
 
-  const commitNoteAtCursor = (midi: number, length = 1) => {
+  const commitNoteAtStep = (startStep: number, midi: number, length = 1) => {
     setNotes((prev) => {
-      const trimmed = removeOverlappingNotes(prev, cursorStep, length);
+      const trimmed = removeOverlappingNotes(prev, startStep, length);
       return [
         ...trimmed,
         {
           id: `note-${crypto.randomUUID()}`,
-          startStep: cursorStep,
+          startStep,
           length,
           midi,
         },
       ];
     });
-    setCursorTo(cursorStep + length);
+    setCursorTo(startStep + length);
   };
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.code === 'ShiftLeft') {
-      event.preventDefault();
-      setShiftState((prev) => {
-        if (prev.left) {
-          return { ...prev, left: false };
-        }
-        return { left: true, right: false };
+  const finalizePendingNote = () => {
+    if (!pendingNote) return null;
+    const { startStep, length, midi } = pendingNote;
+    setNotes((prev) => {
+      const trimmed = removeOverlappingNotes(prev, startStep, length);
+      return [
+        ...trimmed,
+        {
+          id: `note-${crypto.randomUUID()}`,
+          startStep,
+          length,
+          midi,
+        },
+      ];
+    });
+    const nextStep = startStep + length;
+    setCursorTo(nextStep);
+    setPendingNote(null);
+    return nextStep;
+  };
+
+  const handleFretClick = (midi: number | null, extend: boolean) => {
+    if (midi === null) return;
+    let insertionStep = cursorStep;
+    if (pendingNote) {
+      insertionStep = pendingNote.startStep + pendingNote.length;
+      finalizePendingNote();
+    }
+    if (extend) {
+      setCursorTo(insertionStep);
+      setPendingNote({
+        startStep: insertionStep,
+        length: 1,
+        midi,
       });
       return;
     }
-    if (event.code === 'ShiftRight') {
-      event.preventDefault();
-      setShiftState((prev) => {
-        if (prev.right) {
-          return { ...prev, right: false };
-        }
-        return { left: false, right: true };
-      });
+    commitNoteAtStep(insertionStep, midi, 1);
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') {
+      setIsExtendMode(true);
       return;
     }
 
@@ -328,45 +354,14 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
       return;
     }
 
-    const key = event.key.toLowerCase();
-    if (!(key in NOTE_KEY_MAP) || pendingNote) {
-      return;
-    }
-
-    const pc = NOTE_KEY_MAP[key];
-    const midi = computeNoteMidi(pc, tonicMidi, shiftState);
-    if (midi === null) {
-      return;
-    }
-
-    setPendingNote({
-      key,
-      startStep: cursorStep,
-      length: 1,
-      midi,
-    });
   };
 
   const handleKeyUp = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    const key = event.key.toLowerCase();
-    if (!pendingNote || pendingNote.key !== key) {
+    if (event.code !== 'ShiftLeft' && event.code !== 'ShiftRight') {
       return;
     }
-
-    setNotes((prev) => {
-      const trimmed = removeOverlappingNotes(prev, pendingNote.startStep, pendingNote.length);
-      return [
-        ...trimmed,
-        {
-          id: `note-${crypto.randomUUID()}`,
-          startStep: pendingNote.startStep,
-          length: pendingNote.length,
-          midi: pendingNote.midi,
-        },
-      ];
-    });
-    setCursorTo(pendingNote.startStep + pendingNote.length);
-    setPendingNote(null);
+    setIsExtendMode(false);
+    finalizePendingNote();
   };
 
   const stopEditorHotkeys = (event: React.KeyboardEvent<HTMLElement>) => {
@@ -763,7 +758,10 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
             </div>
           ))}
         </div>
-        <div className="text-xs text-base-content/50">Use the Controls toggle for keyboard shortcuts.</div>
+        <div className="text-xs text-base-content/50">
+          Click any fret to add a note. Hold <kbd className="kbd kbd-xs">Shift</kbd> while clicking to start an
+          extendable note, then use arrow keys to grow it.
+        </div>
       </div>
 
       {isOverlayOpen ? (
@@ -773,7 +771,7 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs uppercase text-base-content/60">Controls</p>
-                  <h3 className="text-lg font-semibold">Note Input</h3>
+                  <h3 className="text-lg font-semibold">Fretboard Input</h3>
                 </div>
                 <button
                   type="button"
@@ -784,127 +782,52 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
                 </button>
               </div>
 
-              <div className="flex items-end justify-center gap-4">
-                <div className="flex h-12 w-20">
-                  <button
-                    type="button"
-                    className={`relative flex h-12 w-20 items-center justify-center rounded-lg border text-xs font-semibold uppercase transition active:scale-95 ${
-                      shiftState.left
-                        ? 'border-primary bg-primary/15 text-primary shadow-[0_0_0_1px_rgba(87,13,248,0.35)]'
-                        : 'border-base-300 bg-base-200 text-base-content/70'
-                    }`}
-                    onClick={() =>
-                      setShiftState((prev) => {
-                        if (prev.left) {
-                          return { ...prev, left: false };
-                        }
-                        return { left: true, right: false };
-                      })
-                    }
-                  >
-                    <span className="text-sm font-semibold">- Octave</span>
-                    <span className="absolute bottom-1 left-1 text-[0.6rem] font-semibold uppercase">
-                      L Shift
+              <div className="flex items-start justify-center gap-3 text-xs text-base-content/60">
+                <span>Frets</span>
+                <div className="grid grid-flow-col gap-1">
+                  {Array.from({ length: FRET_COUNT }, (_, fret) => (
+                    <span key={`fret-label-${fret}`} className="w-12 text-center">
+                      {fret}
                     </span>
-                  </button>
-                </div>
-
-                <div className="flex flex-col gap-0">
-                  <div className="flex gap-0 pl-6">
-                  {SHARP_ROW.map((keyName, index) => {
-                    if (!keyName) {
-                      return <div key={`sharp-spacer-${index}`} className="h-12 w-12" />;
-                    }
-                    const item = overlayKeyMap.get(keyName);
-                    if (!item) return null;
-                    return (
-                      <button
-                        key={`key-${item.key}`}
-                        type="button"
-                        className="relative h-12 w-12 rounded-t-lg border text-xs font-semibold uppercase transition active:scale-95"
-                        style={{
-                          borderColor: item.color,
-                          backgroundColor: `${item.color}22`,
-                          color: item.color,
-                          boxShadow: `0 0 0 1px ${item.color}44 inset`,
-                          opacity: item.midi === null ? 0.35 : 1,
-                        }}
-                        onClick={() => {
-                          if (item.midi === null) return;
-                          commitNoteAtCursor(item.midi, 1);
-                          containerRef.current?.focus();
-                        }}
-                        disabled={item.midi === null}
-                      >
-                        <span className="absolute inset-0 flex items-center justify-center text-sm font-semibold">
-                          {item.label}
-                        </span>
-                        <span className="absolute bottom-1 left-1 text-[0.6rem] font-semibold uppercase">
-                          {item.key}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className="flex gap-0">
-                  {NATURAL_ROW.map((keyName) => {
-                    const item = overlayKeyMap.get(keyName);
-                    if (!item) return null;
-                    return (
-                      <button
-                        key={`key-${item.key}`}
-                        type="button"
-                        className="relative h-12 w-12 rounded-b-lg border text-xs font-semibold uppercase transition active:scale-95"
-                        style={{
-                          borderColor: item.color,
-                          backgroundColor: `${item.color}22`,
-                          color: item.color,
-                          boxShadow: `0 0 0 1px ${item.color}44 inset`,
-                          opacity: item.midi === null ? 0.35 : 1,
-                        }}
-                        onClick={() => {
-                          if (item.midi === null) return;
-                          commitNoteAtCursor(item.midi, 1);
-                          containerRef.current?.focus();
-                        }}
-                        disabled={item.midi === null}
-                      >
-                        <span className="absolute inset-0 flex items-center justify-center text-sm font-semibold">
-                          {item.label}
-                        </span>
-                        <span className="absolute bottom-1 left-1 text-[0.6rem] font-semibold uppercase">
-                          {item.key}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-                </div>
-
-                <div className="flex h-12 w-20">
-                  <button
-                    type="button"
-                    className={`relative flex h-12 w-20 items-center justify-center rounded-lg border text-xs font-semibold uppercase transition active:scale-95 ${
-                      shiftState.right
-                        ? 'border-primary bg-primary/15 text-primary shadow-[0_0_0_1px_rgba(87,13,248,0.35)]'
-                        : 'border-base-300 bg-base-200 text-base-content/70'
-                    }`}
-                    onClick={() =>
-                      setShiftState((prev) => {
-                        if (prev.right) {
-                          return { ...prev, right: false };
-                        }
-                        return { left: false, right: true };
-                      })
-                    }
-                  >
-                    <span className="text-sm font-semibold">+ Octave</span>
-                    <span className="absolute bottom-1 left-1 text-[0.6rem] font-semibold uppercase">
-                      R Shift
-                    </span>
-                  </button>
+                  ))}
                 </div>
               </div>
+
+              <div className="space-y-2">
+                {BASS_STRINGS.map((stringItem, stringIndex) => (
+                  <div key={`string-${stringItem.name}`} className="flex items-center gap-3">
+                    <span className="w-6 text-center text-sm font-semibold text-base-content/70">
+                      {stringItem.name}
+                    </span>
+                    <div className="grid grid-flow-col gap-1">
+                      {fretboardCells[stringIndex]?.map((cell) => (
+                        <button
+                          key={`${stringItem.name}-${cell.fret}`}
+                          type="button"
+                          className="h-10 w-12 rounded-md border text-center text-[0.65rem] leading-tight transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-35"
+                          style={{
+                            backgroundColor: `${intervalColor(cell.interval)}1f`,
+                            borderColor: intervalBorderColor(cell.interval),
+                            color: '#1f2937',
+                          }}
+                          onClick={(event) => {
+                            handleFretClick(cell.midi, event.shiftKey || isExtendMode);
+                            containerRef.current?.focus();
+                          }}
+                          disabled={cell.midi === null}
+                        >
+                          {cell.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <p className="text-xs text-base-content/60">
+                <kbd className="kbd kbd-xs">Space</kbd> inserts a rest. Arrow keys move the cursor, and while a
+                pending note is active, <kbd className="kbd kbd-xs">→</kbd> extends it.
+              </p>
             </div>
           </div>
         </div>

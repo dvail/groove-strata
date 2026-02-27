@@ -87,6 +87,11 @@ function App() {
     setDraftTrack(null);
   };
 
+  const handleEditTrack = (track: Track) => {
+    setDraftTrack(track);
+    setIsEditorOpen(true);
+  };
+
   let listItems: React.ReactNode;
   if (isLoading) {
     listItems = (
@@ -147,7 +152,7 @@ function App() {
             {openTracks.length > 0 ? <Legend /> : null}
 
             {isEditorOpen && draftTrack ? (
-              <TrackEditor track={draftTrack} onClose={handleCloseEditor} />
+              <TrackEditor key={draftTrack.id} track={draftTrack} onClose={handleCloseEditor} />
             ) : null}
 
             {openTracks.length === 0 && !isEditorOpen ? (
@@ -174,7 +179,12 @@ function App() {
             {openTracks.length > 0 ? (
               <div className="flex flex-col gap-6">
                 {openTracks.map((track) => (
-                  <TrackView key={track.id} track={track} onClose={() => handleCloseTrack(track.id)} />
+                  <TrackView
+                    key={track.id}
+                    track={track}
+                    onClose={() => handleCloseTrack(track.id)}
+                    onEdit={() => handleEditTrack(track)}
+                  />
                 ))}
               </div>
             ) : null}
