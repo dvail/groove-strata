@@ -825,11 +825,10 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
                           <button
                             key={`${stringItem.name}-${cell.fret}`}
                             type="button"
-                            className="group relative h-8 w-11 overflow-hidden rounded-md border-2 text-center text-[0.65rem] leading-tight transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-35"
+                            className="group relative h-8 w-11 cursor-pointer overflow-hidden rounded-md border border-base-content/55 bg-base-100/80 text-center text-[0.65rem] leading-tight text-base-content/70 transition active:scale-95 hover:cursor-pointer hover:border-2 hover:bg-[var(--fret-hover-bg)] hover:border-[var(--fret-hover-border)] hover:text-base-content focus-visible:cursor-pointer focus-visible:border-2 focus-visible:bg-[var(--fret-hover-bg)] focus-visible:border-[var(--fret-hover-border)] focus-visible:text-base-content disabled:cursor-not-allowed disabled:opacity-35"
                             style={{
-                              backgroundColor: `${intervalColor(cell.interval)}1f`,
-                              borderColor: intervalBorderColor(cell.interval),
-                              color: '#1f2937',
+                              ['--fret-hover-bg' as string]: intervalColor(cell.interval),
+                              ['--fret-hover-border' as string]: intervalBorderColor(cell.interval),
                             }}
                             onClick={(event) => {
                               handleFretClick(cell.midi, event.shiftKey || isExtendMode);
@@ -837,7 +836,10 @@ export function TrackEditor({ track, onClose }: TrackEditorProps) {
                             }}
                             disabled={cell.midi === null}
                           >
-                            <span className="relative z-20 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                            <span
+                              className="relative z-20 font-bold opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+                              style={{ color: cell.interval === 7 ? '#111827' : '#ffffff' }}
+                            >
                               {cell.label}
                             </span>
                           </button>
